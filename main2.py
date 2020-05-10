@@ -30,8 +30,11 @@ class HelloLoader(HelloListener):
         elif ctx.lc:
             self.decorations[ctx] = self.decorations[ctx.premise()[0]]
         else:
-            terms = [self.decorations[ctx.conclusion()[0]], self.decorations[ctx.conclusion()[1]]]
-            self.decorations[ctx] = ds.Formula(terms, ds.Operator().OR)
+            left = self.decorations[ctx.conclusion()[0]]
+            right = self.decorations[ctx.conclusion()[1]]
+            terms = [left, right]
+            formula_bool = [isinstance(left, ds.Formula), isinstance(right, ds.Formula)]
+            self.decorations[ctx] = ds.Formula(terms, ds.Operator().OR, formula_bool)
         pass
 
     def exitPremise(self, ctx):
@@ -45,8 +48,11 @@ class HelloLoader(HelloListener):
                 operator = ds.Operator().AND
             else:
                 operator = ds.Operator().OR
-            terms = [self.decorations[ctx.premise()[0]], self.decorations[ctx.premise()[1]]]
-            self.decorations[ctx] = ds.Formula(terms, operator)
+            left = self.decorations[ctx.premise()[0]]
+            right = self.decorations[ctx.premise()[1]]
+            terms = [left, right]  # Right/Left of operator
+            formula_bool = [isinstance(left, ds.Formula), isinstance(right, ds.Formula)]  # Lets us know if term is a formula
+            self.decorations[ctx] = ds.Formula(terms, operator, formula_bool)
         pass
 
     def exitLiteral(self, ctx):
@@ -82,18 +88,6 @@ def print_tree(tree, rule_names, indent = 0):
             print_tree(child, rule_names, indent + 1)
 
 
-# def printRule(rule_list):
-#     for rule in rule_list:
-#         print(rule)
-#         conc = rule.conclusion()
-#         prem = rule.premise()
-#         while isinstance(conc, ds.Formula):
-#             print(conc.terms)
-#         # while not isinstance(rule.conclusion, ds.Literal):
-#         #
-#         #     print(rule.conclusion + "<-")
-
-
 def parse(input_stream):
     lexer = HelloLexer(input_stream)
     stream = CommonTokenStream(lexer)
@@ -102,12 +96,60 @@ def parse(input_stream):
     loader = HelloLoader()
     walker = ParseTreeWalker()
     walker.walk(loader, tree)
-    # print(loader.rule_list)
+
+    return loader.rule_list
     # printRule(loader.rule_list)
     # print_tree(tree, parser.ruleNames)
 
+# Rule -> Formulas -> Literals (neg/pos)
+
+
+# Prints (for now) data depth first, brackets first ((a and b) and (c and d) does not work yet)
+
+def printData(rule_list):
+    for rule in rule_list:
+        premise = rule.premise
+        conclusion = rule.conclusion
+        to_visit = []
+        save_operator = []
+        while True:
+            if isinstance(premise, ds.Formula):
+                form_bool = premise.formula_bool
+                if form_bool[0]:  # Left term is a formula
+                    to_visit.append(premise.terms[1])
+                    save_operator.append(premise.operator)
+                    premise = premise.terms[0]
+                elif form_bool[1]:  # Right term is a formula
+                    to_visit.append(premise.terms[0])
+                    save_operator.append(premise.operator)
+                    premise = premise.terms[1]
+                else:
+                    left = getLiteral(premise.terms[0])
+                    right = getLiteral(premise.terms[1])
+                    print(left + " " + premise.operator + " " + right, end='')
+                    premise = to_visit.pop()
+                    op = save_operator.pop()
+            else:
+                if isinstance(premise, ds.Literal):
+                    print(" " + op + " " + getLiteral(premise), end='')
+                    if to_visit:
+                        premise = to_visit.pop()
+                    else:
+                        print("")
+                        break
+
+
+# Transforms a literal in the right format
+def getLiteral(term):
+    atom = term.atom
+    neg = term.neg
+    if neg:
+        minus = "-"
+    else:
+        minus = ""
+    return minus + atom
+
 
 if __name__ == '__main__':
-    parse_string("p <- (a or c) and b."
-                 "c and d <- a."
-                 "b <- s or d.")
+    rule_list = parse_string("p <- b and d and a.")
+    printData(rule_list)

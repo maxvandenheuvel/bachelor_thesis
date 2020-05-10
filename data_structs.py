@@ -15,9 +15,10 @@ class DataStructs:
             self.neg = neg
 
     class Formula:
-        def __init__(self, terms, operator):
+        def __init__(self, terms, operator, formula_bool):
             self.terms = terms
             self.operator = operator
+            self.formula_bool = formula_bool
 
     class Rule:
         def __init__(self, conclusion, premise):
