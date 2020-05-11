@@ -50,7 +50,7 @@ class HelloLoader(HelloListener):
                 operator = ds.Operator().OR
             left = self.decorations[ctx.premise()[0]]
             right = self.decorations[ctx.premise()[1]]
-            terms = [left, right]  # Right/Left of operator
+            terms = [left, right]  # left/right of operator
             formula_bool = [isinstance(left, ds.Formula), isinstance(right, ds.Formula)]  # Lets us know if term is a formula
             self.decorations[ctx] = ds.Formula(terms, operator, formula_bool)
         pass
@@ -113,6 +113,7 @@ def printData(rule_list):
         to_visit = []
         save_operator = []
         while True:
+            # print(type(premise))
             if isinstance(premise, ds.Formula):
                 form_bool = premise.formula_bool
                 if form_bool[0]:  # Left term is a formula
@@ -127,11 +128,16 @@ def printData(rule_list):
                     left = getLiteral(premise.terms[0])
                     right = getLiteral(premise.terms[1])
                     print(left + " " + premise.operator + " " + right, end='')
-                    premise = to_visit.pop()
-                    op = save_operator.pop()
+                    if to_visit:
+                        op = save_operator.pop()
+                        print(" " + op + " ", end='')
+                        premise = to_visit.pop()
+                    else:
+                        print("")
+                        break
             else:
                 if isinstance(premise, ds.Literal):
-                    print(" " + op + " " + getLiteral(premise), end='')
+                    print(getLiteral(premise), end='')
                     if to_visit:
                         premise = to_visit.pop()
                     else:
@@ -151,5 +157,5 @@ def getLiteral(term):
 
 
 if __name__ == '__main__':
-    rule_list = parse_string("p <- b and d and a.")
+    rule_list = parse_string("p <- c and b or (b or d).")
     printData(rule_list)
