@@ -1,0 +1,7 @@
+/Tagma.interp
+/Tagma.tokens
+/TagmaLexer.interp
+/TagmaLexer.py
+/TagmaLexer.tokens
+/TagmaListener.py
+/TagmaParser.py

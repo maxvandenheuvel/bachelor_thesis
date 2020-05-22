@@ -5,7 +5,7 @@
 
 */
 
-grammar Hello;
+grammar Tagma;
 /*
 Parser Rules
 */
