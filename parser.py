@@ -1,10 +1,11 @@
 from TagmaLexer import TagmaLexer
 from TagmaParser import TagmaParser
 from TagmaLoader import TagmaLoader
+import antlr4
 
 
 def parse_string(code):
-    return parse(InputStream(code))
+    return parse(antlr4.InputStream(code))
 
 
 def parse_file(filename):
@@ -15,11 +16,11 @@ def parse_file(filename):
 
 def parse(input_stream):
     lexer = TagmaLexer(input_stream)
-    stream = CommonTokenStream(lexer)
+    stream = antlr4.CommonTokenStream(lexer)
     parser = TagmaParser(stream)
     tree = parser.prog()
     loader = TagmaLoader()
-    walker = ParseTreeWalker()
+    walker = antlr4.ParseTreeWalker()
     walker.walk(loader, tree)
     # printRule(loader.rule_list)
     # print_tree(tree, parser.ruleNames)

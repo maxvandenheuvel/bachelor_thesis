@@ -141,6 +141,68 @@ class TestDataStruct(unittest.TestCase):
         self.assertEqual(negate_form.terms[0].operator, ds.Operator.AND)  # Checks the left inner operator
         self.assertEqual(negate_form.terms[1].operator, ds.Operator.OR)  # Checks the right inner operator
 
+    def test_for_equal_formulas(self):
+        a = ds.Literal("a", False)
+        b = ds.Literal("b", False)
+        rule_a = ds.Rule(ds.Literal("p", False), a)
+        rule_b = ds.Rule(ds.Literal("p", False), b)
+        tmp = ds.Program()
+        self.assertTrue(tmp.check_for_equal_formulas(rule_a.conclusion, rule_b.conclusion))
+
+    def test_pb_to_icb_same_conc(self):
+        a = ds.Literal("a", False)
+        b = ds.Literal("b", False)
+        rule_a = ds.Rule(ds.Literal("p", False), a)
+        rule_b = ds.Rule(ds.Literal("p", False), b)
+        combined_rule_list = ds.pb_to_icb([rule_a, rule_b])
+
+        self.assertEqual(combined_rule_list[0].premise.terms[0].atom, "b")
+        self.assertEqual(combined_rule_list[0].premise.operator, ds.Operator.OR)
+        self.assertEqual(combined_rule_list[0].premise.terms[1].atom, "a")
+
+    def test_pb_to_icb_conflict_conc(self):
+        a = ds.Literal("a", False)
+        b = ds.Literal("b", False)
+        rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
+        rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
+        combined_rule_list = ds.pb_to_icb([rule_a, rule_b])
+
+        # Must become -p <- b and -a.
+        self.assertEqual(combined_rule_list[0].premise.terms[0].atom, "b")
+        self.assertEqual(combined_rule_list[0].premise.operator, ds.Operator.AND)
+        self.assertEqual(combined_rule_list[0].premise.terms[1].atom, "a")
+        self.assertTrue(combined_rule_list[0].premise.terms[1].neg)
+        self.assertEqual(combined_rule_list[0].conclusion.atom, "p")
+        self.assertTrue(combined_rule_list[0].conclusion.neg)
+
+    # def test_multiple_conflict_conc(self):
+        # a = ds.Literal("a", False)
+        # b = ds.Literal("b", False)
+        # c = ds.Literal("c", False)
+        # d = ds.Literal("d", False)
+        # rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
+        # rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
+        # rule_c = ds.Rule(ds.Literal("p", False), c)  # p <- c.
+        # rule_d = ds.Rule(ds.Literal("m", True), d)  # -p <- d.
+        #
+        # combined_rule_list = ds.pb_to_icb([rule_d, rule_c, rule_b, rule_a])
+        # # Must become: p <- ((a and -b) or c) and -d).
+        # print(combined_rule_list[0].conclusion.atom)
+        # print(combined_rule_list[0].conclusion.neg)
+        # print(combined_rule_list[0].premise.terms[0].terms[0])
+        # # self.assertEqual(combined_rule_list[0].premise.terms[0].terms[0].atom, "a")
+        # # self.assertEqual(combined_rule_list[0].premise.terms[0].terms[1].atom, "b")
+        # # self.assertEqual(combined_rule_list[0].premise.terms[0].operator, ds.Operator.AND)  # Check inner "AND"
+        # # self.assertEqual(combined_rule_list[0].premise.terms[1].atom, "c")
+        # # self.assertEqual(combined_rule_list[0].premise.terms[0].operator, ds.Operator.OR)  # Check middle "OR"
+        # # self.assertEqual(combined_rule_list[0].premise.terms[0].atom, "d")
+        # # self.assertEqual(combined_rule_list[0].premise.operator, ds.Operator.AND)  # Check outer "AND"
+        #
+        # self.assertFalse(combined_rule_list[0].premise.terms[0].terms[0].terms[0].neg)  # Check if a positive
+        # self.assertTrue(combined_rule_list[0].premise.terms[0].terms[0].terms[1].neg)  # Check if b negative
+        # self.assertFalse(combined_rule_list[0].premise.terms[0].terms[1].neg)  # Check if c positive
+        # self.assertTrue(combined_rule_list[0].premise.terms[1].neg)  # Check if d negative
+
 
 if __name__ == '__main__':
     unittest.main()
