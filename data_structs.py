@@ -49,28 +49,19 @@ class Formula:
         if term is None:
             return 0
         neg_term = term
-        if isinstance(term, Formula):
-            form_bool = neg_term.formula_bool
-            terms = neg_term.terms
-            if form_bool[0]:
-                neg_term.terms[0] = Formula.build_not_formula(terms[0])
-            else:
-                neg_term.terms[0] = Literal.build_not_literal(terms[0])
-            if form_bool[1]:
-                neg_term.terms[1] = Formula.build_not_formula(terms[1])
-            else:
-                neg_term.terms[1] = Literal.build_not_literal(terms[1])
-            # if not form_bool[0] and not form_bool[1]:
-            #     print(neg_term.terms[0].neg)
-            #     neg_term.terms[0] = Literal.build_not_literal(terms[0])
-            #     print(neg_term.terms[0].neg)
-            #     print(neg_term.terms[1].neg)
-            #     neg_term.terms[1] = Literal.build_not_literal(terms[1])
-            #     print(neg_term.terms[1].neg)
-            if neg_term.operator == Operator.AND:
-                neg_term.operator = Operator.OR
-            else:
-                neg_term.operator = Operator.AND
+        form_bool = neg_term.formula_bool
+        if form_bool[0]:
+            neg_term.terms[0] = Formula.build_not_formula(neg_term.terms[0])
+        else:
+            neg_term.terms[0] = Literal.build_not_literal(neg_term.terms[0])
+        if form_bool[1]:
+            neg_term.terms[1] = Formula.build_not_formula(neg_term.terms[1])
+        else:
+            neg_term.terms[1] = Literal.build_not_literal(neg_term.terms[1])
+        if neg_term.operator == Operator.AND:
+            neg_term.operator = Operator.OR
+        else:
+            neg_term.operator = Operator.AND
         return neg_term
 
 
