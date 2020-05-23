@@ -14,10 +14,12 @@ prog        : expr+ EOF;
 
 expr        : conclusion IMPLIES premise end;
 
-conclusion  : lc=LBRA conclusion rc=RBRA
-            | conclusion AND conclusion
-            | literal
-            ;
+//conclusion  : lc=LBRA conclusion rc=RBRA
+//            | conclusion AND conclusion
+//            | literal
+//            ;
+
+conclusion  : literal ;
 
 premise     : lp=LBRA premise rp=RBRA
             | premise AND premise

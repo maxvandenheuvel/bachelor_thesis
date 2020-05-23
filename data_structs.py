@@ -9,64 +9,81 @@ class Operator(Enum):
 
 
 class Literal:
-    def __init__(self, atom, neg):
+    def __init__(self, atom, neg=False):
         self.atom = atom
         self.neg = neg
 
-    @staticmethod
-    def build_not_literal(term):
-        if term is None:
-            return 0
-        neg_term = term
-        if neg_term.neg:
-            neg_term.neg = False
-        else:
-            neg_term.neg = True
-        return neg_term
+    def __eq__(self, other):
+        if self.atom == other.atom:
+            if self.neg == other.neg:
+                return True
+        return False
+
+    def negate_literal(self):
+        return Literal(self.atom, not self.neg)
 
 
 class Formula:
-    def __init__(self, terms, operator, formula_bool):
+    def __init__(self, terms, operator):
         self.terms = terms
         self.operator = operator
-        self.formula_bool = formula_bool  # This boolean keeps track whether the terms are formulas themselves.
-    
-    @staticmethod
-    def build_or_formula(terms):
-        if terms is None:
+
+    def negate_operator(self):
+        if self.operator == Operator.AND:
+            return Operator.OR
+        elif self.operator == Operator.OR:
+            return Operator.AND
+        else:
             return 0
-        formula_bool = [isinstance(terms[0], Formula), isinstance(terms[1], Formula)]
-        return Formula(terms, Operator.OR, formula_bool)
-    
+
+    def negate_formula(self):
+        left_term = self.terms[0].negate_literal()
+        right_term = self.terms[1].negate_literal()
+        operator = self.negate_operator()
+        return Formula([left_term, right_term], operator)
+
     @staticmethod
-    def build_and_formula(terms):
-        if terms is None:
-            return 0
-        formula_bool = [isinstance(terms[0], Formula), isinstance(terms[1], Formula)]
-        return Formula(terms, Operator.AND, formula_bool)
-    
+    def has_subformulas(terms):
+        for term in terms:
+            if isinstance(term, Formula):
+                return True
+        return False
+
     @staticmethod
-    def build_not_formula(term):
-        if term is None:
+    def build_or_formula(left_term, right_term):
+        if left_term is None or right_term is None:
             return 0
-        neg_term = copy.copy(term)
-        if isinstance(term, Formula):
-            form_bool = neg_term.formula_bool
-            if form_bool[0]:
-                neg_term.terms[0] = Formula.build_not_formula(neg_term.terms[0])
+        return Formula([left_term, right_term], Operator.OR)
+
+    @staticmethod
+    def build_and_formula(left_term, right_term):
+        if left_term is None or right_term is None:
+            return 0
+        return Formula([left_term, right_term], Operator.AND)
+
+    @staticmethod
+    def build_not_formula(formula):
+        if formula is None:
+            return 0
+        # neg_formula = Formula()
+        neg_formula = copy.copy(formula)
+        if isinstance(formula, Formula):
+            if Formula.has_subformulas(formula.terms):
+                if isinstance(formula.terms[0], Formula):
+                    neg_formula.terms[0] = Formula.build_not_formula(formula.terms[0])
+                else:
+                    neg_formula.terms[0] = formula.terms[0].negate_literal()
+                    neg_formula.operator = formula.negate_operator()
+                if isinstance(formula.terms[1], Formula):
+                    neg_formula.terms[1] = Formula.build_not_formula(formula.terms[1])
+                else:
+                    neg_formula.terms[1] = formula.terms[1].negate_literal()
+                neg_formula.operator = formula.negate_operator()
             else:
-                neg_term.terms[0] = Literal.build_not_literal(neg_term.terms[0])
-            if form_bool[1]:
-                neg_term.terms[1] = Formula.build_not_formula(neg_term.terms[1])
-            else:
-                neg_term.terms[1] = Literal.build_not_literal(neg_term.terms[1])
-            if neg_term.operator == Operator.AND:
-                neg_term.operator = Operator.OR
-            else:
-                neg_term.operator = Operator.AND
-        elif isinstance(term, Literal):
-            neg_term = Literal.build_not_literal(term)
-        return neg_term
+                neg_formula = formula.negate_formula()
+        elif isinstance(formula, Literal):
+            neg_formula = formula.negate_literal()
+        return neg_formula
 
 
 class Rule:
@@ -74,58 +91,55 @@ class Rule:
         self.conclusion = conclusion
         self.premise = premise
 
-    
+
 class Program:
     def __init__(self):
         self.rule_list = []
+
+    # def merge_same_conclusion(self, new_rule):
+    #     for rule in self.rule_list:
+    #         if new_rule.conclusion == rule.conclusion:
+    #             rule.premise = Formula.build_or_formula(rule.premise, new_rule.premise)
 
     def merge_rule(self, new_rule):
         if not self.rule_list:
             self.rule_list.append(new_rule)
         else:
             merged = False
-            for rule in self.rule_list:
-                if self.check_for_equal_formulas(new_rule.conclusion, rule.conclusion):
-                    rule.premise = Formula.build_or_formula([rule.premise, new_rule.premise])
+            for rule in self.rule_list[::-1]:
+                # if self.check_for_equal_formulas(new_rule.conclusion, rule.conclusion):
+                if new_rule.conclusion == rule.conclusion:
+                    rule.premise = Formula.build_or_formula(rule.premise, new_rule.premise)
                     merged = True
-                elif self.check_for_equal_formulas(new_rule.conclusion, Formula.build_not_formula(rule.conclusion)):
-                    rule.premise = Formula.build_and_formula([rule.premise, Formula.build_not_formula(new_rule.premise)])
-                    merged = True
+                # elif self.check_for_equal_formulas(new_rule.conclusion, Formula.build_not_formula(rule.conclusion)):
+                elif new_rule.conclusion == rule.conclusion.negate_literal():
+                    new_rule.premise = Formula.build_and_formula(new_rule.premise, Formula.build_not_formula(rule.premise))
+                    merged = False
                 else:
                     continue
             if not merged:
-                self.rule_list.append(new_rule)
+                self.rule_list.insert(0, new_rule)
 
     # Recursive comparison of two formulas, Returns True if equal, False otherwise.
-    def check_for_equal_formulas(self, new_rule, existing_rule):
-        success = False
-        if isinstance(new_rule, Formula) and isinstance(existing_rule, Formula):
-            form_bool1 = new_rule.formula_bool
-            form_bool2 = existing_rule.formula_bool
-            if form_bool1 == form_bool2:
-                if new_rule.operator == existing_rule.operator:
-                    if form_bool1[0]:  # Left terms are formulas
-                        if self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0]):
-                            pass
-                    else:
-                        success = self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0])
-
-                    if form_bool1[1]:  # Right terms are formulas
-                        if self.check_for_equal_formulas(new_rule.terms[1], existing_rule.terms[1]):
-                            pass
-                    else:
-                        success = self.check_for_equal_literals(new_rule.terms[1], existing_rule.terms[1])
-
-        elif isinstance(new_rule, Literal) and isinstance(existing_rule, Literal):
-            success = self.check_for_equal_literals(new_rule, existing_rule)
-        return success
-
-    @staticmethod
-    def check_for_equal_literals(new_literal, existing_literal):
-        if new_literal.atom == existing_literal.atom:
-            if new_literal.neg == existing_literal.neg:
-                return True
-        return False
+    # WIP If time; abstract order, apply negations, collapse hierarchy.
+    # def check_for_equal_formulas(self, new_rule, existing_rule):
+    #     success = False
+    #     if isinstance(new_rule, Formula) and isinstance(existing_rule, Formula):
+    #         if new_rule.operator == existing_rule.operator:
+    #             if Formula.has_subformulas(new_rule.terms[0]) and Formula.has_subformulas(existing_rule.terms[0]):
+    #                 if self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0]):
+    #                     pass
+    #             else:
+    #                 success = self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0])
+    #             if Formula.has_subformulas(new_rule.terms[1]) and Formula.has_subformulas(existing_rule.terms[1]):
+    #                 if self.check_for_equal_formulas(new_rule.terms[1], existing_rule.terms[1]):
+    #                     pass
+    #             else:
+    #                 success = existing_rule.terms[1] == new_rule.terms[1]
+    #
+    #     elif isinstance(new_rule, Literal) and isinstance(existing_rule, Literal):
+    #         success = existing_rule == new_rule
+    #     return success
 
 
 def pb_to_icb(rule_list):
