@@ -4,13 +4,13 @@ import data_structs as ds
 
 
 class TestDataStruct(unittest.TestCase):
-        
+
     def test_create_literal(self):
         aPos = ds.Literal("a", False)
         aNeg = ds.Literal("a", True)
         bPos = ds.Literal("b", False)
         bNeg = ds.Literal("b", True)
-        
+
         self.assertTrue(aNeg.neg)
         self.assertEqual(aNeg.atom, "a")
 
@@ -36,7 +36,7 @@ class TestDataStruct(unittest.TestCase):
         aPos = ds.Literal("a", False)
         bNeg = ds.Literal("b", True)
         or_form_literal_terms = ds.Formula.build_or_formula(aPos, bNeg)
-        
+
         self.assertEqual(or_form_literal_terms.terms, [aPos, bNeg])
         self.assertEqual(or_form_literal_terms.operator, ds.Operator.OR)
 
@@ -54,31 +54,31 @@ class TestDataStruct(unittest.TestCase):
         self.assertIsInstance(and_form_literal_terms.terms[0], ds.Literal)
         self.assertIsInstance(and_form_literal_terms.terms[1], ds.Literal)
 
-    # def test_negate_or_formula(self):
-    #     aPos = ds.Literal("a", False)
-    #     bNeg = ds.Literal("b", True)
-    #     or_form_literal_terms = ds.Formula.build_or_formula(aPos, bNeg)  # a or -b
-    #     negate_or = ds.Formula.build_not_formula(or_form_literal_terms)  # -a and b
-    #
-    #     self.assertEqual(negate_or.terms[0].atom, ds.Literal("a").atom)
-    #     self.assertTrue(negate_or.terms[0].neg)
-    #     self.assertEqual(negate_or.terms[1].atom, ds.Literal("b").atom)
-    #     self.assertFalse(negate_or.terms[1].neg)
-    #
-    #     self.assertEqual(negate_or.operator, ds.Operator.AND)
-    #
-    # def test_negate_and_formula(self):
-    #     aPos = ds.Literal("a", False)
-    #     bNeg = ds.Literal("b", True)
-    #     and_form_literal_terms = ds.Formula.build_and_formula(aPos, bNeg)   # a and -b
-    #     negate_and = ds.Formula.build_not_formula(and_form_literal_terms)  # -a or b
-    #
-    #     self.assertEqual(negate_and.terms[0].atom, ds.Literal("a").atom)
-    #     self.assertTrue(negate_and.terms[0].neg)
-    #     self.assertEqual(negate_and.terms[1].atom, ds.Literal("b").atom)
-    #     self.assertFalse(negate_and.terms[1].neg)
-    #
-    #     self.assertEqual(negate_and.operator, ds.Operator.OR)
+    def test_negate_or_formula(self):
+        aPos = ds.Literal("a", False)
+        bNeg = ds.Literal("b", True)
+        or_form_literal_terms = ds.Formula.build_or_formula(aPos, bNeg)  # a or -b
+        negate_or = ds.Formula.build_not_formula(or_form_literal_terms)  # -a and b
+
+        self.assertEqual(negate_or.terms[0].atom, ds.Literal("a").atom)
+        self.assertTrue(negate_or.terms[0].neg)
+        self.assertEqual(negate_or.terms[1].atom, ds.Literal("b").atom)
+        self.assertFalse(negate_or.terms[1].neg)
+
+        self.assertEqual(negate_or.operator, ds.Operator.AND)
+
+    def test_negate_and_formula(self):
+        aPos = ds.Literal("a", False)
+        bNeg = ds.Literal("b", True)
+        and_form_literal_terms = ds.Formula.build_and_formula(aPos, bNeg)   # a and -b
+        negate_and = ds.Formula.build_not_formula(and_form_literal_terms)  # -a or b
+
+        self.assertEqual(negate_and.terms[0].atom, ds.Literal("a").atom)
+        self.assertTrue(negate_and.terms[0].neg)
+        self.assertEqual(negate_and.terms[1].atom, ds.Literal("b").atom)
+        self.assertFalse(negate_and.terms[1].neg)
+
+        self.assertEqual(negate_and.operator, ds.Operator.OR)
 
     def test_negate_lit_form(self):
         aPos = ds.Literal("a", False)
@@ -194,8 +194,6 @@ class TestDataStruct(unittest.TestCase):
 
         self.assertEqual(combined_rule_list[0].premise.operator, ds.Operator.AND)
 
-
-
     def test_alternating_conflicting_conc_to_icb(self):
         a = ds.Literal("a", False)
         b = ds.Literal("b", False)
@@ -270,25 +268,138 @@ class TestDataStruct(unittest.TestCase):
         self.assertFalse(combined_rule[0].conclusion.neg)  # Check if p is positive in; p <- (a or c) and (-b and -d).
 
         self.assertEqual(combined_rule[0].premise.terms[0].terms[0].atom, ds.Literal("a").atom)
-        self.assertFalse(combined_rule[0].premise.terms[0].terms[0].neg)  # Check if a is positive in; p <- (a or c) and (-b and -d).
+        self.assertFalse(
+            combined_rule[0].premise.terms[0].terms[0].neg)  # Check if a is positive in; p <- (a or c) and (-b and -d).
 
         self.assertEqual(combined_rule[0].premise.terms[0].terms[1].atom, ds.Literal("c").atom)
-        self.assertFalse(combined_rule[0].premise.terms[0].terms[1].neg)  # Check if c is positive in; p <- (a or c) and (-b and -d).
+        self.assertFalse(
+            combined_rule[0].premise.terms[0].terms[1].neg)  # Check if c is positive in; p <- (a or c) and (-b and -d).
 
-        self.assertEqual(combined_rule[0].premise.terms[0].operator, ds.Operator.OR)  # Check OR in; p <- (a or c) and (-b and -d).
+        self.assertEqual(combined_rule[0].premise.terms[0].operator,
+                         ds.Operator.OR)  # Check OR in; p <- (a or c) and (-b and -d).
 
         self.assertEqual(combined_rule[0].premise.terms[1].terms[0].atom, ds.Literal("b").atom)
-        self.assertTrue(combined_rule[0].premise.terms[1].terms[0].neg)  # Check if b is negative in; p <- (a or c) and (-b and -d).
+        self.assertTrue(
+            combined_rule[0].premise.terms[1].terms[0].neg)  # Check if b is negative in; p <- (a or c) and (-b and -d).
 
         self.assertEqual(combined_rule[0].premise.terms[1].terms[1].atom, ds.Literal("d").atom)
-        self.assertTrue(combined_rule[0].premise.terms[1].terms[1].neg)  # Check if d is negative in; p <- (a or c) and (-b and -d).
+        self.assertTrue(
+            combined_rule[0].premise.terms[1].terms[1].neg)  # Check if d is negative in; p <- (a or c) and (-b and -d).
 
-        self.assertEqual(combined_rule[0].premise.terms[1].operator, ds.Operator.AND)  # Check innter AND in; p <- (a or c) and (-b and -d).
+        self.assertEqual(combined_rule[0].premise.terms[1].operator,
+                         ds.Operator.AND)  # Check innter AND in; p <- (a or c) and (-b and -d).
 
         self.assertEqual(combined_rule[0].premise.operator, ds.Operator.AND)  # Check outer AND
 
-    def intermediate_to_full_tabular(self):
-        a_and_negb = ds.Formula.build_or_formula(ds.Literal("a"), ds.Literal("b", True))
+    def test_is_unspecified_literal(self):
+        aP = ds.Literal("a", False)
+        aN = ds.Literal("a", True)
+        b = ds.Literal("b", False)
+        self.assertTrue(aP.is_unspecified_literal(b))
+        self.assertFalse(aN.is_unspecified_literal(aP))
+
+    def test_is_unspecified_formula(self):
+        aP = ds.Literal("a", False)
+        aN = ds.Literal("a", True)
+        b = ds.Literal("b", False)
+        c = ds.Literal("c", False)
+        d = ds.Literal("d", False)
+
+        aP_and_c = ds.Formula.build_and_formula(aP, c)
+        aN_and_c = ds.Formula.build_and_formula(aN, c)
+        aP_and_c_and_b = ds.Formula.build_and_formula(aP_and_c, b)
+        b_and_aP_and_c = ds.Formula.build_and_formula(b, aP_and_c)
+        aP_and_c_and_An_and_c = ds.Formula.build_and_formula(aP_and_c, aN_and_c)
+
+        self.assertFalse(aP_and_c.is_unspecified_formula(aN))
+        self.assertFalse(aP_and_c.is_unspecified_formula(c))
+
+        self.assertFalse(aN_and_c.is_unspecified_formula(aP))
+        self.assertFalse(aN_and_c.is_unspecified_formula(c))
+
+        self.assertFalse(aP_and_c_and_b.is_unspecified_formula(aN))
+        self.assertFalse(aP_and_c_and_b.is_unspecified_formula(c))
+        self.assertFalse(aP_and_c_and_b.is_unspecified_formula(b))
+
+        self.assertFalse(b_and_aP_and_c.is_unspecified_formula(aN))
+        self.assertFalse(b_and_aP_and_c.is_unspecified_formula(b))
+        self.assertFalse(b_and_aP_and_c.is_unspecified_formula(c))
+
+        self.assertFalse(aP_and_c_and_An_and_c.is_unspecified_formula(c))
+        self.assertFalse(aP_and_c_and_An_and_c.is_unspecified_formula(aN))
+
+        self.assertTrue(aP_and_c.is_unspecified_formula(b))
+        self.assertTrue(aN_and_c.is_unspecified_formula(b))
+        self.assertTrue(aP_and_c_and_b.is_unspecified_formula(d))
+        self.assertTrue(aP_and_c_and_An_and_c.is_unspecified_formula(b))
+
+    def test_get_unspecified_literals(self):
+        aP = ds.Literal("a", False)
+        aN = ds.Literal("a", True)
+        b = ds.Literal("b", False)
+        c = ds.Literal("c", False)
+        d = ds.Literal("d", False)
+        e = ds.Literal("e", False)
+        f = ds.Literal("f", False)
+
+        aP_and_c = ds.Formula.build_and_formula(aP, c)
+        aN_and_c = ds.Formula.build_and_formula(aN, c)
+        d_and_e = ds.Formula.build_and_formula(d, e)
+        b_and_aP_and_c = ds.Formula.build_and_formula(b, aP_and_c)
+        aP_and_c_and_An_and_c = ds.Formula.build_and_formula(aP_and_c, aN_and_c)
+        d_and_e_and_f = ds.Formula.build_and_formula(d_and_e, f)
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, aN), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, aN_and_c), [c])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, b_and_aP_and_c), [b, c])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, aP_and_c_and_An_and_c), [c])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, aN), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, aN_and_c), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, b_and_aP_and_c), [b])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, aP_and_c_and_An_and_c), [])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, aN), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, aN_and_c), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, b_and_aP_and_c), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, aP_and_c_and_An_and_c), [])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, aN), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, aN_and_c), [])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, b_and_aP_and_c),
+                         [ds.Literal("b", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, aP_and_c_and_An_and_c), [])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, d), [ds.Literal("d", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, d), [ds.Literal("d", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, d), [ds.Literal("d", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, d), [ds.Literal("d", False)])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, d_and_e), [ds.Literal("d", False),
+                                                                            ds.Literal("e", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, d_and_e), [ds.Literal("d", False),
+                                                                                  ds.Literal("e", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, d_and_e), [ds.Literal("d", False),
+                                                                                        ds.Literal("e", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, d_and_e), [ds.Literal("d", False),
+                                                                                               ds.Literal("e", False)])
+
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP, d_and_e_and_f), [ds.Literal("d", False),
+                                                                                  ds.Literal("e", False),
+                                                                                  ds.Literal("f", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c, d_and_e_and_f), [ds.Literal("d", False),
+                                                                                        ds.Literal("e", False),
+                                                                                        ds.Literal("f", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(b_and_aP_and_c, d_and_e_and_f), [ds.Literal("d", False),
+                                                                                              ds.Literal("e", False),
+                                                                                              ds.Literal("f", False)])
+        self.assertEqual(ds.Formula.get_unspecified_literals(aP_and_c_and_An_and_c, d_and_e_and_f),
+                         [ds.Literal("d", False),
+                          ds.Literal("e", False),
+                          ds.Literal("f", False)])
+
+    def test_intermediate_to_full_tabular(self):
+        a_and_negb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
         b = ds.Literal("b")
         rule_a = ds.Rule(ds.Literal("p"), a_and_negb)  # p <- a and -b.
         rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
@@ -310,7 +421,7 @@ class TestDataStruct(unittest.TestCase):
 
         self.assertEqual(new_rule_base[0].premise.operator, ds.Operator.AND)  # Check AND in; p <- a and -b.
 
-        # Check -p < - a and b.
+        # Check -p <- a and b.
         self.assertEqual(new_rule_base[1].conclusion.atom, ds.Literal("p").atom)
         self.assertTrue(new_rule_base[1].conclusion.neg)  # Check if p negative in; -p <- a and b.
 
@@ -333,6 +444,69 @@ class TestDataStruct(unittest.TestCase):
         self.assertFalse(new_rule_base[2].premise.terms[1].neg)  # Check if b positive in; p <- a and -b.
 
         self.assertEqual(new_rule_base[2].premise.operator, ds.Operator.AND)  # Check AND in; -p <- -a and b.
+
+    def test_intermediate_to_full_tabular_and(self):
+        a_and_negb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+        b_and_c = ds.Formula.build_and_formula(ds.Literal("b"), ds.Literal("c"))
+
+        rule_a = ds.Rule(ds.Literal("p"), a_and_negb)  # p <- a and -b.
+        rule_b = ds.Rule(ds.Literal("p", True), b_and_c)  # -p <- b and c.
+        new_rule_base = ds.icb_to_ftcb([rule_a, rule_b])
+
+        # Must become: p <- a and -b.
+        #            : -p <- a and b and c.
+        #            : -p <- -a and b and c.
+
+        # Check p <- a and -b
+        self.assertEqual(new_rule_base[0].conclusion.atom, ds.Literal("p").atom)
+        self.assertFalse(new_rule_base[0].conclusion.neg)  # Check if p positive in; p <- a and -b.
+
+        self.assertEqual(new_rule_base[0].premise.terms[0].atom, ds.Literal("a").atom)
+        self.assertFalse(new_rule_base[0].premise.terms[0].neg)  # Check if a positive in; p <- a and -b.
+
+        self.assertEqual(new_rule_base[0].premise.terms[1].atom, ds.Literal("b").atom)
+        self.assertTrue(new_rule_base[0].premise.terms[1].neg)  # Check if b negative in; p <- a and -b.
+
+        self.assertEqual(new_rule_base[0].premise.operator, ds.Operator.AND)  # Check AND in; p <- a and -b.
+
+        # Check -p < a and b and c.
+        self.assertEqual(new_rule_base[1].conclusion.atom, ds.Literal("p").atom)
+        self.assertTrue(new_rule_base[1].conclusion.neg)  # Check if p negative in; -p <- a and b and c.
+
+        self.assertEqual(new_rule_base[1].premise.terms[0].atom, ds.Literal("a").atom)
+        self.assertFalse(new_rule_base[1].premise.terms[0].neg)  # Check if a positive in;  -p <- a and b and c.
+
+        self.assertEqual(new_rule_base[1].premise.terms[1].terms[0].atom, ds.Literal("b").atom)
+        self.assertFalse(new_rule_base[1].premise.terms[1].terms[0].neg)  # Check if b positive in;  -p <- a and b and c.
+
+        self.assertEqual(new_rule_base[1].premise.terms[1].terms[1].atom, ds.Literal("c").atom)
+        self.assertFalse(
+            new_rule_base[1].premise.terms[1].terms[1].neg)  # Check if c positive in;  -p <- a and b and c.
+
+        self.assertEqual(new_rule_base[1].premise.operator,
+                         ds.Operator.AND)  # Check first AND in;  -p <- a and b and c.
+        self.assertEqual(new_rule_base[1].premise.terms[1].operator,
+                         ds.Operator.AND)  # Check second AND in;  -p <- a and b and c.
+
+        # Check -p <- -a and b and c.
+        self.assertEqual(new_rule_base[2].conclusion.atom, ds.Literal("p").atom)
+        self.assertTrue(new_rule_base[2].conclusion.neg)  # Check if p negative in; -p <- -a and b and c.
+
+        self.assertEqual(new_rule_base[2].premise.terms[0].atom, ds.Literal("a").atom)
+        self.assertTrue(new_rule_base[2].premise.terms[0].neg)  # Check if a negative in; -p <- -a and b and c.
+
+        self.assertEqual(new_rule_base[2].premise.terms[1].terms[0].atom, ds.Literal("b").atom)
+        self.assertFalse(
+            new_rule_base[2].premise.terms[1].terms[0].neg)  # Check if b positive in;  -p <- -a and b and c.
+
+        self.assertEqual(new_rule_base[2].premise.terms[1].terms[1].atom, ds.Literal("c").atom)
+        self.assertFalse(
+            new_rule_base[2].premise.terms[1].terms[1].neg)  # Check if c positive in;  -p <- -a and b and c.
+
+        self.assertEqual(new_rule_base[2].premise.operator,
+                         ds.Operator.AND)  # Check first AND in;  -p <- -a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[1].operator,
+                         ds.Operator.AND)  # Check second AND in;  -p <- -a and b and c.
 
 
 if __name__ == '__main__':
