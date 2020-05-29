@@ -29,8 +29,7 @@ class TagmaLoader(TagmaListener):
         else:
             left = self.decorations[ctx.conclusion()[0]]
             right = self.decorations[ctx.conclusion()[1]]
-            terms = [left, right]
-            self.decorations[ctx] = ds.Formula.build_and_formula(terms)
+            self.decorations[ctx] = ds.Formula.build_and_formula(left, right)
         pass
 
     def exitPremise(self, ctx):
@@ -42,11 +41,10 @@ class TagmaLoader(TagmaListener):
         else:
             left = self.decorations[ctx.premise()[0]]
             right = self.decorations[ctx.premise()[1]]
-            terms = [left, right]  # left/right of operator
             if ctx.AND():
-                self.decorations[ctx] = ds.Formula.build_and_formula(terms)
+                self.decorations[ctx] = ds.Formula.build_and_formula(left, right)
             else:
-                self.decorations[ctx] = ds.Formula.build_or_formula(terms)
+                self.decorations[ctx] = ds.Formula.build_or_formula(left, right)
         pass
 
     def exitLiteral(self, ctx):

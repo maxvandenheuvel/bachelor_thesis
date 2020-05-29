@@ -1,8 +1,9 @@
-from antlr4 import *
+# from antlr4 import *
 from antlr4.tree.Tree import TerminalNodeImpl
 
 import data_structs as ds
-import parser
+import parser as ps
+
 # Rule -> Formulas -> Literals (neg/pos)
 
 
@@ -17,31 +18,30 @@ def print_tree(tree, rule_names, indent = 0):
             print_tree(child, rule_names, indent + 1)
 
 
-# Prints (for now) formula depth first,
+# Prints formula depth first,
 def print_data(formula):
     to_visit = []
     save_operator = []
     while True:
         if isinstance(formula, ds.Formula):
-            form_bool = formula.formula_bool
-            if form_bool[0]:  # Left term is a formula
+            if formula.left_is_subformula():  # Left term is a formula
                 to_visit.append(formula.terms[1])
-                save_operator.append(formula.operator)
+                save_operator.append(get_operator(formula.operator))
                 formula = formula.terms[0]
-            elif form_bool[1]:  # Right term is a formula
+            elif formula.right_is_subformula():  # Right term is a formula
                 to_visit.append(formula.terms[0])
-                save_operator.append(formula.operator)
+                save_operator.append(get_operator(formula.operator))
                 formula = formula.terms[1]
             else:
                 left = get_literal(formula.terms[0])
                 right = get_literal(formula.terms[1])
-                print(left + " " + formula.operator + " " + right, end='')
+                print(left + " " + get_operator(formula.operator) + " " + right, end='')
                 if to_visit:
                     op = save_operator.pop()
                     print(" " + op + " ", end='')
                     formula = to_visit.pop()
                 else:
-                    print("")
+                    # print("")
                     break
         else:
             if isinstance(formula, ds.Literal):
@@ -52,8 +52,15 @@ def print_data(formula):
                 if to_visit:
                     formula = to_visit.pop()
                 else:
-                    print("")
+                    # print("")
                     break
+
+
+def get_operator(operator):
+    if operator == ds.Operator.OR:
+        return "or"
+    if operator == ds.Operator.AND:
+        return "and"
 
 
 # Transforms a literal in the right format
@@ -66,29 +73,19 @@ def get_literal(term):
         minus = ""
     return minus + atom
 
-# def icb_ti_ftcb(rule_list):
 
-# def ftcb_to_icb(rule_list):
-
-# def icb_to_pb(rule_list):
-#     Quince-McCluskey
+def print_rule_list(rule_list):
+    for rule in rule_list:
+        print_data(rule.conclusion)
+        print(" <- ", end='')
+        print_data(rule.premise)
+        print("")
 
 
 if __name__ == '__main__':
-    rule_list = parser.parse_string("p <- l and (c or d)."
-                                    "p <- l and (c or d).")
-    ds.pb_to_icb(rule_list)
-    # negate_form(rule_list[0].premise)
-    # rule1 = rule_list[0]
-    # rule2 = rule_list[1]
-    # prem1 = rule1.premise
-    # prem2 = rule2.premise
-    # conc1 = rule1.conclusion
-    # conc2 = rule2.conclusion
-    # # if comp_form(conc1, conc2):
-    # #     print("conc kek")
-    # if comp_form(prem1, prem2):
-    #     print("prem kek")
-    # # printData(conclusion)
-    # printData(prem1)
-    # printData(prem2)
+    rule_list = ps.parse_string("p <- a and -b."
+                                "-p <- b.")
+    # icb = ds.pb_to_icb(rule_list)
+    ftcb = ds.icb_to_ftcb(rule_list)  # Still have to implement removing duplicates.
+    # print_rule_list(icb)
+    print_rule_list(ftcb)
