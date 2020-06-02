@@ -18,42 +18,21 @@ def print_tree(tree, rule_names, indent = 0):
             print_tree(child, rule_names, indent + 1)
 
 
-# Prints formula depth first,
+# Prints formula depth first
 def print_data(formula):
-    to_visit = []
-    save_operator = []
-    while True:
-        if isinstance(formula, ds.Formula):
-            if formula.left_is_subformula():  # Left term is a formula
-                to_visit.append(formula.terms[1])
-                save_operator.append(get_operator(formula.operator))
-                formula = formula.terms[0]
-            elif formula.right_is_subformula():  # Right term is a formula
-                to_visit.append(formula.terms[0])
-                save_operator.append(get_operator(formula.operator))
-                formula = formula.terms[1]
-            else:
-                left = get_literal(formula.terms[0])
-                right = get_literal(formula.terms[1])
-                print(left + " " + get_operator(formula.operator) + " " + right, end='')
-                if to_visit:
-                    op = save_operator.pop()
-                    print(" " + op + " ", end='')
-                    formula = to_visit.pop()
-                else:
-                    # print("")
-                    break
+    if isinstance(formula, ds.Literal):
+        print(get_literal(formula), end='')
+    else:
+        if formula.left_is_subformula():
+            print_data(formula.terms[0])
         else:
-            if isinstance(formula, ds.Literal):
-                print(get_literal(formula), end='')
-                if len(to_visit) == 1:
-                    op = save_operator.pop()
-                    print(" " + op + " ", end='')
-                if to_visit:
-                    formula = to_visit.pop()
-                else:
-                    # print("")
-                    break
+            print(get_literal(formula.terms[0]) + " " + get_operator(formula.operator) + " ", end='')
+        if formula.right_is_subformula():
+            print_data(formula.terms[1])
+        elif formula.left_is_subformula():
+            print(" " + get_operator(formula.operator) + " " + get_literal(formula.terms[1]), end='')
+        else:
+            print(get_literal(formula.terms[1]), end='')
 
 
 def get_operator(operator):
@@ -83,7 +62,7 @@ def print_rule_list(rule_list):
 
 
 if __name__ == '__main__':
-    rule_list = ps.parse_string("p <- a and -b."
+    rule_list = ps.parse_string("p <- a and b and c."
                                 "-p <- b.")
     # icb = ds.pb_to_icb(rule_list)
     ftcb = ds.icb_to_ftcb(rule_list)  # Still have to implement removing duplicates.

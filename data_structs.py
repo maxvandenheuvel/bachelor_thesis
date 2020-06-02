@@ -17,10 +17,16 @@ class Literal:
 
     # Returns True if two literals have the same atom and negation.
     def __eq__(self, other):
-        if self.atom == other.atom:
-            if self.neg == other.neg:
-                return True
+        if self.atom == other.atom and self.neg == other.neg:
+            return True
         return False
+
+    # So we can use literals as keys when making a dictionary.
+    def __hash__(self):
+        return hash((self.atom, self.neg))
+
+    def __gt__(self, other):
+        return self.atom > other.atom
 
     # Negates a literal and returns a new literal object.
     def negate_literal(self):
@@ -126,6 +132,31 @@ class Formula:
             return 0
         return Formula([left_term, right_term], Operator.AND)
 
+    # @staticmethod
+    # def build_and_alphabetical(formula, literal):
+    #     if isinstance(formula, Literal):
+    #         if formula > literal:
+    #             return Formula.build_and_formula(literal, formula)
+    #         else:
+    #             return Formula.build_and_formula(formula, literal)
+    #     else:
+    #         if formula.left_is_subformula():
+    #             formula.terms[0] = Formula.build_and_alphabetical(formula.terms[0], literal)
+    #         else:
+    #             if formula.terms[0] > literal:
+    #                 temp = formula.terms[0]
+    #                 formula.terms[0] = literal
+    #                 literal = temp
+    #         if formula.right_is_subformula():
+    #             formula.terms[1] = Formula.build_and_alphabetical(formula.terms[1], literal)
+    #         else:
+    #             if formula.terms[1] > literal:
+    #                 temp = formula.terms[1]
+    #                 formula.terms[1] = literal
+    #                 literal = temp
+    #         return Formula.build_and_formula(formula, literal)
+
+
     # returns a new negated formula object.
     @staticmethod
     def build_not_formula(formula):
@@ -189,23 +220,42 @@ class Program:
             if not merged:  # Add the rule to the front if not merged.
                 self.rule_list.insert(0, new_rule)
 
-    # Used for the conversion from constraint to full tabular constraint, builds the rule list.
-    def constraint_to_full_tabular(self, new_rule):
+    # Used for the conversion from intermediate to full tabular constraint, builds the rule list.
+    def intermediate_to_full_tabular(self, new_rule):
         if not self.rule_list:  # Add new rule if rule list is empty.
+            print("empt")
             self.rule_list.append(new_rule)
         else:
-            for i in range(len(self.rule_list)):  # Loop over rule list and get position integers.
+            added = False
+            for i in range(len(self.rule_list)):  # Loop over rule list and get index.
                 rule = self.rule_list[i]
+                print("in")
                 if new_rule.conclusion == rule.conclusion.negate_literal():  # If the conclusions are negations.
-                    unspecified_literals = Formula.get_unspecified_literals(rule.premise, new_rule.premise)  # Get
-                    # unspecified literals list.
-                    for literal in unspecified_literals:  # Loop over unspecified literals and build the new rules.
+                    print("neg")
+                    unspecified_literals_old = Formula.get_unspecified_literals(rule.premise, new_rule.premise)  # Get
+                    # literals from the new_rule that are unspecified in the old rule.
+                    unspecified_literals_new = Formula.get_unspecified_literals(new_rule.premise, rule.premise)  # Get
+                    # literals from the old that are unspecified in the new rule.
+                    # print(unspecified_literals_new[0].atom)
+                    # print(unspecified_literals_old[0].atom)
+                    for literal in unspecified_literals_old:  # Loop over unspecified literals and rebuild old rules.
+                        print("old")
                         new_lit = Literal(literal.atom, literal.neg)
                         self.rule_list[i] = Rule(rule.conclusion,
                                                  Formula.build_and_formula(new_lit.negate_literal(), rule.premise))
                         self.rule_list.insert(i, Rule(rule.conclusion,
                                                       Formula.build_and_formula(new_lit, rule.premise)))
-            self.rule_list.insert(0, new_rule)  # Add the new rule to the front of the list.
+                    for literal in unspecified_literals_new:  # Implement a way to determine order or literals.
+                        added = True
+                        print("new")
+                        new_lit = Literal(literal.atom, literal.neg)
+                        self.rule_list.insert(i, Rule(new_rule.conclusion,
+                                                      Formula.build_and_formula(new_lit.negate_literal(), new_rule.premise)))
+                        self.rule_list.insert(i, Rule(new_rule.conclusion,
+                                                      Formula.build_and_formula(new_lit,
+                                                                                new_rule.premise)))
+            if not added:
+                self.rule_list.insert(0, new_rule)  # Add the new rule to the front of the list.
 
     # Recursive comparison of two formulas, Returns True if equal, False otherwise.
     # WIP If time; abstract order, apply negations, collapse hierarchy.
@@ -241,5 +291,50 @@ def pb_to_icb(rule_list):
 def icb_to_ftcb(rule_list):
     temp_program = Program()
     for ri in rule_list[::-1]:  # from ri to r1
-        temp_program.constraint_to_full_tabular(ri)
+        temp_program.intermediate_to_full_tabular(ri)
     return temp_program.rule_list
+
+
+# def ftcb_to_icb(rule_list):
+# Combine rules with the same conclusion
+# Transform rules to work with QM.
+# Apply QM
+
+def transform_rules_qm(rule_list):
+    # Make a dictionary with keys conclusions
+    # If conclusion is in dict, get minterm values of the premise and add as value.
+    minterm_dict = {}
+    for rule in rule_list:
+        added = False
+        for key in minterm_dict.keys():  # Iterate through just the keys.
+            if key == rule.conclusion:
+                minterm_dict[key] = minterm_dict[key], int('0b' + get_minterm(rule.premise), 2)
+                added = True
+        if not added:
+            minterm_dict[rule.conclusion] = int('0b' + get_minterm(rule.premise), 2)
+    return minterm_dict
+
+
+def get_minterm(premise):
+    minterm = ""
+    if isinstance(premise, Literal):
+        if premise.neg:
+            return '0'
+        else:
+            return '1'
+    else:
+        if premise.left_is_subformula():
+            minterm += get_minterm(premise.terms[0])
+        else:
+            if premise.terms[0].neg:
+                minterm += '0'
+            else:
+                minterm += '1'
+        if premise.right_is_subformula():
+            minterm += get_minterm(premise.terms[1])
+        else:
+            if premise.terms[1].neg:
+                minterm += '0'
+            else:
+                minterm += '1'
+        return minterm
