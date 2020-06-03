@@ -1,4 +1,5 @@
 import data_structs as ds
+import qm_utils as qmu
 
 
 # Class used for conversions, returns the converted rule list.
@@ -57,6 +58,11 @@ class Program:
         if not added:
             self.rule_list.insert(0, new_rule)  # Add the new rule to the front of the list.
 
+    @staticmethod
+    def full_tabular_to_intermediate(rule_list):
+        rule_dict = qmu.qm_dict(rule_list)
+        return qmu.apply_qm(rule_dict)
+
 # Priority based to intermediate constraint based conversion.
 def pb_to_icb(rule_list):
     temp_program = Program()
@@ -73,59 +79,6 @@ def icb_to_ftcb(rule_list):
     return temp_program.rule_list
 
 
-# def ftcb_to_icb(rule_list):
-# Combine rules with the same conclusion
-# Transform rules to work with QM.
-# Apply QM
-
-# Creates and returns a dictionary with conclusions as keys with a list as values.
-# First element in each value list are the literals used in the premise followed by the minterms.
-def transform_rules_qm(rule_list):
-    minterm_dict = {}
-    for rule in rule_list:
-        added = False
-        minterm, literals = get_minterm_literals(rule.premise)
-        print(minterm)
-        print(literals)
-        for key in minterm_dict.keys():  # Iterate through just the keys.
-            print(key == rule.conclusion)
-            print(key.atom)
-            print(key.neg)
-            if key == rule.conclusion:
-                minterm_dict[key] += [(int('0b' + minterm, 2))]
-                added = True
-        if not added:
-            minterm_dict[rule.conclusion] = [literals, int('0b' + minterm, 2)]
-    return minterm_dict
-
-
-def get_minterm_literals(formula):
-    minterm = ""
-    literals = ""
-    if isinstance(formula, ds.Literal):
-        if formula.neg:
-            return '0', formula.atom
-        else:
-            return '1', formula.atom
-    else:
-        if formula.left_is_subformula():
-            minterm_temp, literals_temp = get_minterm_literals(formula.terms[0])
-            minterm += minterm_temp
-            literals += literals_temp
-        else:
-            if formula.terms[0].neg:
-                minterm += '0'
-            else:
-                minterm += '1'
-            literals += formula.terms[0].atom
-        if formula.right_is_subformula():
-            minterm_temp, literals_temp = get_minterm_literals(formula.terms[1])
-            minterm += minterm_temp
-            literals += literals_temp
-        else:
-            if formula.terms[1].neg:
-                minterm += '0'
-            else:
-                minterm += '1'
-            literals += formula.terms[1].atom
-        return minterm, literals
+def ftcb_to_icb(rule_list):
+    temp_program = Program()
+    return temp_program.full_tabular_to_intermediate(rule_list)

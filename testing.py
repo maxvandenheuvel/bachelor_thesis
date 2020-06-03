@@ -2,6 +2,8 @@ import unittest
 import main as mn
 import data_structs as ds
 import converters as cv
+import qm
+import qm_utils as qmu
 
 class TestDataStruct(unittest.TestCase):
 
@@ -547,13 +549,13 @@ class TestDataStruct(unittest.TestCase):
         #            : -a and b and c = '011'
         #            : a and -b and -c = '100'
 
-        self.assertEqual(cv.get_minterm_literals(a), ('1', 'a'))
-        self.assertEqual(cv.get_minterm_literals(a.negate_literal()), ('0', 'a'))
-        self.assertEqual(cv.get_minterm_literals(a_and_b), ('11', 'ab'))
-        self.assertEqual(cv.get_minterm_literals(a_and_nb), ('10', 'ab'))
-        self.assertEqual(cv.get_minterm_literals(na_and_b), ('01', 'ab'))
-        self.assertEqual(cv.get_minterm_literals(na_and_b_and_c), ('011', 'abc'))
-        self.assertEqual(cv.get_minterm_literals(a_and_nb_and_nc), ('100', 'abc'))
+        self.assertEqual(qmu.get_minterm_literals(a), ('1', 'a'))
+        self.assertEqual(qmu.get_minterm_literals(a.negate_literal()), ('0', 'a'))
+        self.assertEqual(qmu.get_minterm_literals(a_and_b), ('11', 'ab'))
+        self.assertEqual(qmu.get_minterm_literals(a_and_nb), ('10', 'ab'))
+        self.assertEqual(qmu.get_minterm_literals(na_and_b), ('01', 'ab'))
+        self.assertEqual(qmu.get_minterm_literals(na_and_b_and_c), ('011', 'abc'))
+        self.assertEqual(qmu.get_minterm_literals(a_and_nb_and_nc), ('100', 'abc'))
 
     def test_transform_rules_to_QM(self):
         a_and_negb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
@@ -566,11 +568,45 @@ class TestDataStruct(unittest.TestCase):
         rule_b = ds.Rule(ds.Literal("p", True), a_and_b_and_c)  # -p <- a and b and c.
         rule_c = ds.Rule(ds.Literal("p", True), na_and_b_and_c)  # -p <- -a and b and c.
 
-        QM_dict = cv.transform_rules_qm([rule_a, rule_b, rule_c])
+        QM_dict = qmu.qm_dict([rule_a, rule_b, rule_c])
 
         self.assertEqual(QM_dict[ds.Literal("p", False)], ['ab', 2])
         self.assertEqual(QM_dict[ds.Literal("p", True)], ['abc', 7, 3])
 
+    def test_qm(self):
+        qm_dict = {ds.Literal("p"): ['abc', 7, 3]}
+        value = qm_dict[ds.Literal("p")]
+        literals, minterm = value[1], value[1:]
+        quineMc = qm.QuineMcCluskey()
+        simplified = quineMc.simplify(minterm)
+        self.assertEqual(simplified, {'-11'})
+
+    def test_apply_qm(self):
+        a_and_nb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+
+        b_and_c = ds.Formula.build_and_formula(ds.Literal("b"), ds.Literal("c"))
+        a_and_b_and_c = ds.Formula.build_and_formula(ds.Literal("a"), b_and_c)
+        na_and_b_and_c = ds.Formula.build_and_formula(ds.Literal("a", True), b_and_c)
+
+        rule_a = ds.Rule(ds.Literal("p"), a_and_nb)  # p <- a and -b.
+        rule_b = ds.Rule(ds.Literal("p", True), a_and_b_and_c)  # -p <- a and b and c.
+        rule_c = ds.Rule(ds.Literal("p", True), na_and_b_and_c)  # -p <- -a and b and c.
+
+        QM_dict = qmu.qm_dict([rule_a, rule_b, rule_c])
+        rule_list = qmu.apply_qm(QM_dict)
+
+        # Must become: p <- a and -b.
+        #             -p <- b and c.
+
+        self.assertEqual(rule_list[0].premise.terms[0], ds.Literal("a"))
+        self.assertEqual(rule_list[0].premise.terms[1], ds.Literal("b", True))
+        self.assertEqual(rule_list[0].conclusion, ds.Literal("p"))
+        self.assertEqual(rule_list[0].premise.operator, ds.Operator.AND)
+
+        self.assertEqual(rule_list[1].premise.terms[0], ds.Literal("b"))
+        self.assertEqual(rule_list[1].premise.terms[1], ds.Literal("c"))
+        self.assertEqual(rule_list[1].conclusion, ds.Literal("p", True))
+        self.assertEqual(rule_list[1].premise.operator, ds.Operator.AND)
 
 if __name__ == '__main__':
     unittest.main()

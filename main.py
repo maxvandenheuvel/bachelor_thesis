@@ -1,6 +1,7 @@
 # from antlr4 import *
 from antlr4.tree.Tree import TerminalNodeImpl
 
+import converters as cv
 import data_structs as ds
 import parser as ps
 
@@ -62,9 +63,10 @@ def print_rule_list(rule_list):
 
 
 if __name__ == '__main__':
-    rule_list = ps.parse_string("p <- a and -b."
+    rule_list = ps.parse_string("p <- a and -b and c."
                                 "-p <- b and c.")
-    # icb = ds.pb_to_icb(rule_list)
-    ftcb = ds.icb_to_ftcb(rule_list)
+    # icb = cv.pb_to_icb(rule_list)
+    ftcb = cv.icb_to_ftcb(rule_list)
+    icb = cv.ftcb_to_icb(ftcb)
     # print_rule_list(icb)
-    print_rule_list(ftcb)
+    print_rule_list(icb)
