@@ -132,30 +132,39 @@ class Formula:
             return 0
         return Formula([left_term, right_term], Operator.AND)
 
-    # @staticmethod
-    # def build_and_alphabetical(formula, literal):
-    #     if isinstance(formula, Literal):
-    #         if formula > literal:
-    #             return Formula.build_and_formula(literal, formula)
-    #         else:
-    #             return Formula.build_and_formula(formula, literal)
-    #     else:
-    #         if formula.left_is_subformula():
-    #             formula.terms[0] = Formula.build_and_alphabetical(formula.terms[0], literal)
-    #         else:
-    #             if formula.terms[0] > literal:
-    #                 temp = formula.terms[0]
-    #                 formula.terms[0] = literal
-    #                 literal = temp
-    #         if formula.right_is_subformula():
-    #             formula.terms[1] = Formula.build_and_alphabetical(formula.terms[1], literal)
-    #         else:
-    #             if formula.terms[1] > literal:
-    #                 temp = formula.terms[1]
-    #                 formula.terms[1] = literal
-    #                 literal = temp
-    #         return Formula.build_and_formula(formula, literal)
+    # Takes a literal and a formula and returns the formula with the literal inserted in alphabetical order,
+    # also returns a literal that still needs to be added.
+    @staticmethod
+    def sort_and_alphabetical(formula, literal):
+        formula_c = copy.deepcopy(formula)  # Create a full copy of the formula
+        literal_c = copy.deepcopy(literal)  # Create a full copy of the literal
+        if formula_c.left_is_subformula():
+            formula_c.terms[0], literal_c = Formula.sort_and_alphabetical(formula_c.terms[0], literal_c)
+        else:
+            if formula_c.terms[0] > literal_c:  # Check if left term is lower in the alphabet
+                temp = formula_c.terms[0]
+                formula_c.terms[0] = literal_c
+                literal_c = temp
+        if formula_c.right_is_subformula():
+            formula_c.terms[1], literal_c = Formula.sort_and_alphabetical(formula_c.terms[1], literal_c)
+        else:
+            if formula_c.terms[1] > literal_c:  # Check if right term is lower in the alphabet
+                temp = formula_c.terms[1]
+                formula_c.terms[1] = literal_c
+                literal_c = temp
+        return formula_c, literal_c
 
+    # Adds the given literal to the formula so it is sorted in alphabetical order, only with AND operators.
+    @staticmethod
+    def build_sort_and_formula(formula, literal):
+        if isinstance(formula, Literal):
+            if formula > literal:  # Check if formula is lower in the alphabet than literal.
+                return Formula.build_and_formula(literal, formula)
+            else:
+                return Formula.build_and_formula(formula, literal)
+        else:  # Sort the formula and return the last literal that needs to be added.
+            formula, literal = Formula.sort_and_alphabetical(formula, literal)
+            return Formula.build_and_formula(formula, literal)
 
     # returns a new negated formula object.
     @staticmethod
@@ -187,154 +196,3 @@ class Rule:
     def __init__(self, conclusion, premise):
         self.conclusion = conclusion
         self.premise = premise
-
-
-# Class used for conversions, returns the converted rule list.
-class Program:
-    def __init__(self):
-        self.rule_list = []
-
-    # Used for conclusions with operators.
-    # def merge_same_conclusion(self, new_rule):
-    #     for rule in self.rule_list:
-    #         if new_rule.conclusion == rule.conclusion:
-    #             rule.premise = Formula.build_or_formula(rule.premise, new_rule.premise)
-
-    # Used for the conversion from priority to constraint based, builds the rule list.
-    def priority_to_constraint(self, new_rule):
-        if not self.rule_list:  # If rule list is empty, just add the new rule.
-            self.rule_list.append(new_rule)
-        else:
-            merged = False  # Keeps track of merge process.
-            for rule in self.rule_list[::-1]:  # Traverse the rule list backwards.
-                if new_rule.conclusion == rule.conclusion:  # If the conclusions are the same, build OR formula.
-                    rule.premise = Formula.build_or_formula(rule.premise, new_rule.premise)
-                    merged = True
-                elif new_rule.conclusion == rule.conclusion.negate_literal():  # If conclusions are negations,
-                    # build AND with negated premise.
-                    new_rule.premise = Formula.build_and_formula(new_rule.premise,
-                                                                 Formula.build_not_formula(rule.premise))
-                    merged = False
-                else:
-                    continue
-            if not merged:  # Add the rule to the front if not merged.
-                self.rule_list.insert(0, new_rule)
-
-    # Used for the conversion from intermediate to full tabular constraint, builds the rule list.
-    def intermediate_to_full_tabular(self, new_rule):
-        if not self.rule_list:  # Add new rule if rule list is empty.
-            print("empt")
-            self.rule_list.append(new_rule)
-        else:
-            added = False
-            for i in range(len(self.rule_list)):  # Loop over rule list and get index.
-                rule = self.rule_list[i]
-                print("in")
-                if new_rule.conclusion == rule.conclusion.negate_literal():  # If the conclusions are negations.
-                    print("neg")
-                    unspecified_literals_old = Formula.get_unspecified_literals(rule.premise, new_rule.premise)  # Get
-                    # literals from the new_rule that are unspecified in the old rule.
-                    unspecified_literals_new = Formula.get_unspecified_literals(new_rule.premise, rule.premise)  # Get
-                    # literals from the old that are unspecified in the new rule.
-                    # print(unspecified_literals_new[0].atom)
-                    # print(unspecified_literals_old[0].atom)
-                    for literal in unspecified_literals_old:  # Loop over unspecified literals and rebuild old rules.
-                        print("old")
-                        new_lit = Literal(literal.atom, literal.neg)
-                        self.rule_list[i] = Rule(rule.conclusion,
-                                                 Formula.build_and_formula(new_lit.negate_literal(), rule.premise))
-                        self.rule_list.insert(i, Rule(rule.conclusion,
-                                                      Formula.build_and_formula(new_lit, rule.premise)))
-                    for literal in unspecified_literals_new:  # Implement a way to determine order or literals.
-                        added = True
-                        print("new")
-                        new_lit = Literal(literal.atom, literal.neg)
-                        self.rule_list.insert(i, Rule(new_rule.conclusion,
-                                                      Formula.build_and_formula(new_lit.negate_literal(), new_rule.premise)))
-                        self.rule_list.insert(i, Rule(new_rule.conclusion,
-                                                      Formula.build_and_formula(new_lit,
-                                                                                new_rule.premise)))
-            if not added:
-                self.rule_list.insert(0, new_rule)  # Add the new rule to the front of the list.
-
-    # Recursive comparison of two formulas, Returns True if equal, False otherwise.
-    # WIP If time; abstract order, apply negations, collapse hierarchy.
-    # def check_for_equal_formulas(self, new_rule, existing_rule):
-    #     success = False
-    #     if isinstance(new_rule, Formula) and isinstance(existing_rule, Formula):
-    #         if new_rule.operator == existing_rule.operator:
-    #             if Formula.has_subformulas(new_rule.terms[0]) and Formula.has_subformulas(existing_rule.terms[0]):
-    #                 if self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0]):
-    #                     pass
-    #             else:
-    #                 success = self.check_for_equal_formulas(new_rule.terms[0], existing_rule.terms[0])
-    #             if Formula.has_subformulas(new_rule.terms[1]) and Formula.has_subformulas(existing_rule.terms[1]):
-    #                 if self.check_for_equal_formulas(new_rule.terms[1], existing_rule.terms[1]):
-    #                     pass
-    #             else:
-    #                 success = existing_rule.terms[1] == new_rule.terms[1]
-    #
-    #     elif isinstance(new_rule, Literal) and isinstance(existing_rule, Literal):
-    #         success = existing_rule == new_rule
-    #     return success
-
-
-# Priority based to intermediate constraint based conversion.
-def pb_to_icb(rule_list):
-    temp_program = Program()
-    for ri in rule_list[::-1]:  # from ri to r1
-        temp_program.priority_to_constraint(ri)
-    return temp_program.rule_list
-
-
-# Intermediate constraint based to full-tabular constraint based conversion.
-def icb_to_ftcb(rule_list):
-    temp_program = Program()
-    for ri in rule_list[::-1]:  # from ri to r1
-        temp_program.intermediate_to_full_tabular(ri)
-    return temp_program.rule_list
-
-
-# def ftcb_to_icb(rule_list):
-# Combine rules with the same conclusion
-# Transform rules to work with QM.
-# Apply QM
-
-def transform_rules_qm(rule_list):
-    # Make a dictionary with keys conclusions
-    # If conclusion is in dict, get minterm values of the premise and add as value.
-    minterm_dict = {}
-    for rule in rule_list:
-        added = False
-        for key in minterm_dict.keys():  # Iterate through just the keys.
-            if key == rule.conclusion:
-                minterm_dict[key] = minterm_dict[key], int('0b' + get_minterm(rule.premise), 2)
-                added = True
-        if not added:
-            minterm_dict[rule.conclusion] = int('0b' + get_minterm(rule.premise), 2)
-    return minterm_dict
-
-
-def get_minterm(premise):
-    minterm = ""
-    if isinstance(premise, Literal):
-        if premise.neg:
-            return '0'
-        else:
-            return '1'
-    else:
-        if premise.left_is_subformula():
-            minterm += get_minterm(premise.terms[0])
-        else:
-            if premise.terms[0].neg:
-                minterm += '0'
-            else:
-                minterm += '1'
-        if premise.right_is_subformula():
-            minterm += get_minterm(premise.terms[1])
-        else:
-            if premise.terms[1].neg:
-                minterm += '0'
-            else:
-                minterm += '1'
-        return minterm

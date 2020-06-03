@@ -1,7 +1,7 @@
 import unittest
 import main as mn
 import data_structs as ds
-
+import converters as cv
 
 class TestDataStruct(unittest.TestCase):
 
@@ -144,7 +144,7 @@ class TestDataStruct(unittest.TestCase):
         b = ds.Literal("b", False)
         rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
         rule_b = ds.Rule(ds.Literal("p", False), b)  # p <- b.
-        program = ds.Program()
+        program = cv.Program()
         program.priority_to_constraint(rule_a)  # Merged p <- a.
         program.priority_to_constraint(rule_b)  # Merge p <- b.
         new_rule = program.rule_list[0]
@@ -165,7 +165,7 @@ class TestDataStruct(unittest.TestCase):
         b = ds.Literal("b", False)
         rule_a = ds.Rule(ds.Literal("p", False), a)
         rule_b = ds.Rule(ds.Literal("p", False), b)
-        combined_rule_list = ds.pb_to_icb([rule_a, rule_b])
+        combined_rule_list = cv.pb_to_icb([rule_a, rule_b])
 
         self.assertEqual(combined_rule_list[0].premise.terms[0].atom, "b")
         self.assertEqual(combined_rule_list[0].premise.operator, ds.Operator.OR)
@@ -176,7 +176,7 @@ class TestDataStruct(unittest.TestCase):
         b = ds.Literal("b", False)
         rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
         rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
-        combined_rule_list = ds.pb_to_icb([rule_a, rule_b])
+        combined_rule_list = cv.pb_to_icb([rule_a, rule_b])
 
         # Must become:  p <- a and -b.  (combined_rule_list[0])
         #         and: -p <- b.         (combined_rule_list[1])
@@ -201,7 +201,7 @@ class TestDataStruct(unittest.TestCase):
         rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
         rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
         rule_c = ds.Rule(ds.Literal("p", False), c)  # p <- c.
-        combined_abc = ds.pb_to_icb([rule_a, rule_b, rule_c])
+        combined_abc = cv.pb_to_icb([rule_a, rule_b, rule_c])
 
         # Must become: p <- a and -b or c.      (combined_abs[0])
         #            :-p <- b and -c.           (combined_abs[1])
@@ -249,7 +249,7 @@ class TestDataStruct(unittest.TestCase):
         d = ds.Literal("d", False)
         rule_a = ds.Rule(ds.Literal("p", False), ds.Formula.build_or_formula(a, c))  # p <- a or c.
         rule_b = ds.Rule(ds.Literal("p", True), ds.Formula.build_or_formula(b, d))  # -p <- b or d.
-        combined_rule = ds.pb_to_icb([rule_a, rule_b])
+        combined_rule = cv.pb_to_icb([rule_a, rule_b])
 
         # Must become:  p <- (a or c) and (-b and -d).
         #            : -p <- b or d.
@@ -403,7 +403,7 @@ class TestDataStruct(unittest.TestCase):
         b = ds.Literal("b")
         rule_a = ds.Rule(ds.Literal("p"), a_and_negb)  # p <- a and -b.
         rule_b = ds.Rule(ds.Literal("p", True), b)  # -p <- b.
-        new_rule_base = ds.icb_to_ftcb([rule_a, rule_b])
+        new_rule_base = cv.icb_to_ftcb([rule_a, rule_b])
 
         # Must become: p <- a and -b.
         #            : -p <- a and b.
@@ -444,112 +444,94 @@ class TestDataStruct(unittest.TestCase):
         self.assertFalse(new_rule_base[2].premise.terms[1].neg)  # Check if b positive in; p <- a and -b.
 
         self.assertEqual(new_rule_base[2].premise.operator, ds.Operator.AND)  # Check AND in; -p <- -a and b.
-    #
-    # def test_build_and_alphabetical(self):
-    #     a_and_c = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("c"))
-    #     e_and_d = ds.Formula.build_and_formula(ds.Literal("e"), ds.Literal("d"))
-    #     f_and_e_and_d = ds.Formula.build_and_formula(ds.Literal("f"), e_and_d)
-    #     b = ds.Literal("b")
-    #
-    #     a_and_b_and_c = ds.Formula.build_and_alphabetical(a_and_c, b)
-    #     b_and_d_and_e_and_f = ds.Formula.build_and_alphabetical(f_and_e_and_d, b)
-    #     mn.print_data(b_and_d_and_e_and_f)
-    #     self.assertEqual(a_and_b_and_c.terms[0].terms[0], ds.Literal("a"))
-    #     self.assertEqual(a_and_b_and_c.terms[0].terms[1], ds.Literal("b"))
-    #     self.assertEqual(a_and_b_and_c.terms[1], ds.Literal("c"))
-    #
-    #     print(b_and_d_and_e_and_f.terms[0].terms[1].terms[1].atom)
-    #     self.assertEqual(b_and_d_and_e_and_f.terms[0].terms[0], ds.Literal("b"))
-    #     self.assertEqual(b_and_d_and_e_and_f.terms[0].terms[1].terms[0], ds.Literal("d"))
-    #     self.assertEqual(b_and_d_and_e_and_f.terms[0].terms[1].terms[1], ds.Literal("e"))
-    #     self.assertEqual(b_and_d_and_e_and_f.terms[1], ds.Literal("f"))
 
-    def test_intermediate_to_full_tabular_and_no_alphabetical(self):
+    def test_sort_and_alphabetical(self):
+        d_and_e = ds.Formula.build_and_formula(ds.Literal("d"), ds.Literal("e"))
+        a_and_d, e1 = ds.Formula.sort_and_alphabetical(d_and_e, ds.Literal("a"))
+
+        self.assertEqual(a_and_d.terms[0], ds.Literal("a"))
+        self.assertEqual(a_and_d.terms[1].atom, ds.Literal("d").atom)
+        self.assertEqual(e1, ds.Literal("e"))
+
+        # Test with soring needed.
+        a_and_d_and_e1 = ds.Formula.build_and_formula(a_and_d, e1)
+        a_and_b_and_d, e2 = ds.Formula.sort_and_alphabetical(a_and_d_and_e1, ds.Literal("b"))
+        self.assertEqual(a_and_b_and_d.terms[0].terms[0], ds.Literal("a"))
+        self.assertEqual(a_and_b_and_d.terms[0].terms[1], ds.Literal("b"))
+        self.assertEqual(a_and_b_and_d.terms[1], ds.Literal("d"))
+        self.assertEqual(e2, ds.Literal("e"))
+
+        # Test when no sorting is needed.
+        a_and_b_and_d, f = ds.Formula.sort_and_alphabetical(a_and_b_and_d, ds.Literal("f"))
+        self.assertEqual(a_and_b_and_d.terms[0].terms[0], ds.Literal("a"))
+        self.assertEqual(a_and_b_and_d.terms[0].terms[1], ds.Literal("b"))
+        self.assertEqual(a_and_b_and_d.terms[1], ds.Literal("d"))
+        self.assertEqual(f, ds.Literal("f"))
+
+    def test_sort_build_and(self):
+        a_and_c = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("c"))
+        a_and_b_and_c = ds.Formula.build_sort_and_formula(a_and_c, ds.Literal("b"))
+        self.assertEqual(a_and_b_and_c.terms[0].terms[0], ds.Literal("a"))
+        self.assertEqual(a_and_b_and_c.terms[0].terms[1], ds.Literal("b"))
+        self.assertEqual(a_and_b_and_c.terms[1], ds.Literal("c"))
+
+    def test_intermediate_to_full_tabular_alphabetical(self):
         a_and_negb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
         b_and_c = ds.Formula.build_and_formula(ds.Literal("b"), ds.Literal("c"))
 
         rule_a = ds.Rule(ds.Literal("p"), a_and_negb)  # p <- a and -b.
         rule_b = ds.Rule(ds.Literal("p", True), b_and_c)  # -p <- b and c.
-        new_rule_base = ds.icb_to_ftcb([rule_a, rule_b])
+        new_rule_base = cv.icb_to_ftcb([rule_a, rule_b])
 
-        # Must become: p <- c and a and -b.
-        #            : p <- -c and a and -b.
+        # Must become: p <- a and -b and c.
+        #            : p <- a and -b and -c.
         #            : -p <- a and b and c.
         #            : -p <- -a and b and c.
 
-        # Check p <- c and a and -b.
-        self.assertEqual(new_rule_base[0].conclusion, ds.Literal("p"))
-        self.assertFalse(new_rule_base[0].conclusion.neg)  # Check if p positive in; p <- c and a and -b.
+        # Check p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].conclusion, ds.Literal("p"))  # Check p in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[0].terms[0], ds.Literal("a"))  # Check a in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[0].terms[1], ds.Literal("b", True))  # Check b in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[1], ds.Literal("c")) # Check c in; p <- a and -b and c.
 
-        self.assertEqual(new_rule_base[0].premise.terms[0].atom, ds.Literal("c").atom)
-        self.assertFalse(new_rule_base[0].premise.terms[0].neg)  # Check if c positive in; p <- c and a and -b.
+        self.assertEqual(new_rule_base[0].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.operator, ds.Operator.AND)  # Check second AND in; p <- a and -b and c.
 
-        self.assertEqual(new_rule_base[0].premise.terms[1].terms[0].atom, ds.Literal("a").atom)
-        self.assertFalse(new_rule_base[0].premise.terms[1].terms[0].neg)  # Check if a positive in; c and a and -b.
-
-        self.assertEqual(new_rule_base[0].premise.terms[1].terms[1].atom, ds.Literal("b").atom)
-        self.assertTrue(new_rule_base[0].premise.terms[1].terms[1].neg)  # Check if b negative in; p <- c and a and -b.
-
-        self.assertEqual(new_rule_base[0].premise.operator, ds.Operator.AND)  # Check first AND in; p <- c
-        # and a and -b.
-        self.assertEqual(new_rule_base[0].premise.terms[1].operator, ds.Operator.AND)  # Check second AND in; p <- c
-        # and a and -b.
-
-        # Check p <- -c and a and -b.
-        self.assertEqual(new_rule_base[1].conclusion, ds.Literal("p"))
-        self.assertFalse(new_rule_base[1].conclusion.neg)  # Check if p positive in; p <- -c and a and -b.
-
-        self.assertEqual(new_rule_base[1].premise.terms[0].atom, ds.Literal("c").atom)
-        self.assertTrue(new_rule_base[1].premise.terms[0].neg)  # Check if c negative in; p <- -c and a and -b.
-
-        self.assertEqual(new_rule_base[1].premise.terms[1].terms[0].atom, ds.Literal("a").atom)
-        self.assertFalse(new_rule_base[1].premise.terms[1].terms[0].neg)  # Check if a positive in; -c and a and -b.
-
-        self.assertEqual(new_rule_base[1].premise.terms[1].terms[1].atom, ds.Literal("b").atom)
-        self.assertTrue(new_rule_base[1].premise.terms[1].terms[1].neg)  # Check if b negative in; p <- -c and a and -b.
-
-        self.assertEqual(new_rule_base[1].premise.operator, ds.Operator.AND)  # Check first AND in; p <- -c
-        # and a and -b.
-        self.assertEqual(new_rule_base[1].premise.terms[1].operator, ds.Operator.AND)  # Check second AND in; p <- -c
-        # and a and -b.
+        # Check p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].conclusion, ds.Literal("p"))  # Check p in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[0].terms[0], ds.Literal("a")) # Check a in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[0].terms[1], ds.Literal("b", True))  # Check b in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[1], ds.Literal("c", True))  # Check c in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; p <- -a and -b
+        # and -c.
+        self.assertEqual(new_rule_base[1].premise.operator, ds.Operator.AND)  # Check second AND in; p <- a
+        # and -b and -c.
 
         # Check -p < a and b and c.
-        self.assertEqual(new_rule_base[2].conclusion.atom, ds.Literal("p").atom)
-        self.assertTrue(new_rule_base[2].conclusion.neg)  # Check if p negative in; -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].conclusion, ds.Literal("p", True))  # Check p in; -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[0].terms[0], ds.Literal("a"))  # Check a in; -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[0].terms[1], ds.Literal("b"))  # Check b in;  -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[1], ds.Literal("c"))  # Check c in;  -p <- a and b and c.
 
-        self.assertEqual(new_rule_base[2].premise.terms[0].atom, ds.Literal("a").atom)
-        self.assertFalse(new_rule_base[2].premise.terms[0].neg)  # Check if a positive in; -p <- a and b and c.
-
-        self.assertEqual(new_rule_base[2].premise.terms[1].terms[0].atom, ds.Literal("b").atom)
-        self.assertFalse(new_rule_base[2].premise.terms[1].terms[0].neg)  # Check if b positive in;  -p <- a and b
-        # and c.
-
-        self.assertEqual(new_rule_base[2].premise.terms[1].terms[1].atom, ds.Literal("c").atom)
-        self.assertFalse(new_rule_base[2].premise.terms[1].terms[1].neg)  # Check if c positive in;  -p <- a and b
-        # and c.
-
-        self.assertEqual(new_rule_base[2].premise.operator, ds.Operator.AND)  # Check first AND in; -p <- a and b and c.
-        self.assertEqual(new_rule_base[2].premise.terms[1].operator, ds.Operator.AND)  # Check second AND in;  -p <-
+        self.assertEqual(new_rule_base[2].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; -p <- a
+        # and b and c.
+        self.assertEqual(new_rule_base[2].premise.operator, ds.Operator.AND)  # Check second AND in;  -p <-
         # a and b and c.
 
         # Check -p <- -a and b and c.
-        self.assertEqual(new_rule_base[3].conclusion.atom, ds.Literal("p").atom)
-        self.assertTrue(new_rule_base[3].conclusion.neg)  # Check if p negative in; -p <- -a and b and c.
+        self.assertEqual(new_rule_base[3].conclusion, ds.Literal("p", True))  # Check p in; -p <- -a and b and c.
+        self.assertEqual(new_rule_base[3].premise.terms[0].terms[0], ds.Literal("a", True))  # Check a in; -p <- -a
+        # and b and c.
+        self.assertEqual(new_rule_base[3].premise.terms[0].terms[1], ds.Literal("b"))  # Check b in;  -p <- -a and b
+        # and c.
+        self.assertEqual(new_rule_base[3].premise.terms[1], ds.Literal("c")) # Check c in;  -p <- -a and b and c.
 
-        self.assertEqual(new_rule_base[3].premise.terms[0].atom, ds.Literal("a").atom)
-        self.assertTrue(new_rule_base[3].premise.terms[0].neg)  # Check if a negative in; -p <- -a and b and c.
-
-        self.assertEqual(new_rule_base[3].premise.terms[1].terms[0].atom, ds.Literal("b").atom)
-        self.assertFalse(new_rule_base[3].premise.terms[1].terms[0].neg)  # Check if b positive in;  -p <- -a and b and c.
-
-        self.assertEqual(new_rule_base[3].premise.terms[1].terms[1].atom, ds.Literal("c").atom)
-        self.assertFalse(new_rule_base[3].premise.terms[1].terms[1].neg)  # Check if c positive in;  -p <- -a and b and c.
-
-        self.assertEqual(new_rule_base[3].premise.operator, ds.Operator.AND)  # Check first AND in;  -p <- -a and b and c.
-        self.assertEqual(new_rule_base[3].premise.terms[1].operator, ds.Operator.AND)  # Check second AND in;  -p <-
+        self.assertEqual(new_rule_base[3].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in;  -p <-
+        # -a and b and c.
+        self.assertEqual(new_rule_base[3].premise.operator, ds.Operator.AND)  # Check second AND in;  -p <-
         # -a and b and c.
 
-    def test_get_minterm(self):
+    def test_get_minterm_literals(self):
         a = ds.Literal("a")
         b = ds.Literal("b")
         c = ds.Literal("c")
@@ -565,13 +547,13 @@ class TestDataStruct(unittest.TestCase):
         #            : -a and b and c = '011'
         #            : a and -b and -c = '100'
 
-        self.assertEqual(ds.get_minterm(a), '1')
-        self.assertEqual(ds.get_minterm(a.negate_literal()), '0')
-        self.assertEqual(ds.get_minterm(a_and_b), '11')
-        self.assertEqual(ds.get_minterm(a_and_nb), '10')
-        self.assertEqual(ds.get_minterm(na_and_b), '01')
-        self.assertEqual(ds.get_minterm(na_and_b_and_c), '011')
-        self.assertEqual(ds.get_minterm(a_and_nb_and_nc), '100')
+        self.assertEqual(cv.get_minterm_literals(a), ('1', 'a'))
+        self.assertEqual(cv.get_minterm_literals(a.negate_literal()), ('0', 'a'))
+        self.assertEqual(cv.get_minterm_literals(a_and_b), ('11', 'ab'))
+        self.assertEqual(cv.get_minterm_literals(a_and_nb), ('10', 'ab'))
+        self.assertEqual(cv.get_minterm_literals(na_and_b), ('01', 'ab'))
+        self.assertEqual(cv.get_minterm_literals(na_and_b_and_c), ('011', 'abc'))
+        self.assertEqual(cv.get_minterm_literals(a_and_nb_and_nc), ('100', 'abc'))
 
     def test_transform_rules_to_QM(self):
         a_and_negb = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
@@ -584,10 +566,11 @@ class TestDataStruct(unittest.TestCase):
         rule_b = ds.Rule(ds.Literal("p", True), a_and_b_and_c)  # -p <- a and b and c.
         rule_c = ds.Rule(ds.Literal("p", True), na_and_b_and_c)  # -p <- -a and b and c.
 
-        QM_dict = ds.transform_rules_qm([rule_a, rule_b, rule_c])
+        QM_dict = cv.transform_rules_qm([rule_a, rule_b, rule_c])
 
-        self.assertEqual(QM_dict[ds.Literal("p")], 2)
-        self.assertEqual(QM_dict[ds.Literal("p", True)], (7, 3))
+        self.assertEqual(QM_dict[ds.Literal("p", False)], ['ab', 2])
+        self.assertEqual(QM_dict[ds.Literal("p", True)], ['abc', 7, 3])
+
 
 if __name__ == '__main__':
     unittest.main()

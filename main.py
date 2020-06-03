@@ -62,9 +62,9 @@ def print_rule_list(rule_list):
 
 
 if __name__ == '__main__':
-    rule_list = ps.parse_string("p <- a and b and c."
-                                "-p <- b.")
+    rule_list = ps.parse_string("p <- a and -b."
+                                "-p <- b and c.")
     # icb = ds.pb_to_icb(rule_list)
-    ftcb = ds.icb_to_ftcb(rule_list)  # Still have to implement removing duplicates.
+    ftcb = ds.icb_to_ftcb(rule_list)
     # print_rule_list(icb)
     print_rule_list(ftcb)
