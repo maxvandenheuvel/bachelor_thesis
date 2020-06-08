@@ -4,6 +4,8 @@ import data_structs as ds
 import converters as cv
 import qm
 import qm_utils as qmu
+import determining_priorities as dp
+import parser
 
 class TestDataStruct(unittest.TestCase):
 
@@ -72,7 +74,7 @@ class TestDataStruct(unittest.TestCase):
     def test_negate_and_formula(self):
         aPos = ds.Literal("a", False)
         bNeg = ds.Literal("b", True)
-        and_form_literal_terms = ds.Formula.build_and_formula(aPos, bNeg)   # a and -b
+        and_form_literal_terms = ds.Formula.build_and_formula(aPos, bNeg)  # a and -b
         negate_and = ds.Formula.build_not_formula(and_form_literal_terms)  # -a or b
 
         self.assertEqual(negate_and.terms[0].atom, ds.Literal("a").atom)
@@ -147,8 +149,8 @@ class TestDataStruct(unittest.TestCase):
         rule_a = ds.Rule(ds.Literal("p", False), a)  # p <- a.
         rule_b = ds.Rule(ds.Literal("p", False), b)  # p <- b.
         program = cv.Program()
-        program.priority_to_constraint(rule_a)  # Merged p <- a.
-        program.priority_to_constraint(rule_b)  # Merge p <- b.
+        program.priority_to_intermediate(rule_a)  # Merged p <- a.
+        program.priority_to_intermediate(rule_b)  # Merge p <- b.
         new_rule = program.rule_list[0]
         # Should be p <- a or b.
         self.assertEqual(new_rule.conclusion.atom, ds.Literal("p").atom)
@@ -492,27 +494,36 @@ class TestDataStruct(unittest.TestCase):
 
         # Check p <- a and -b and c.
         self.assertEqual(new_rule_base[0].conclusion, ds.Literal("p"))  # Check p in; p <- a and -b and c.
-        self.assertEqual(new_rule_base[0].premise.terms[0].terms[0], ds.Literal("a"))  # Check a in; p <- a and -b and c.
-        self.assertEqual(new_rule_base[0].premise.terms[0].terms[1], ds.Literal("b", True))  # Check b in; p <- a and -b and c.
-        self.assertEqual(new_rule_base[0].premise.terms[1], ds.Literal("c")) # Check c in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[0].terms[0],
+                         ds.Literal("a"))  # Check a in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[0].terms[1],
+                         ds.Literal("b", True))  # Check b in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[1], ds.Literal("c"))  # Check c in; p <- a and -b and c.
 
-        self.assertEqual(new_rule_base[0].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; p <- a and -b and c.
-        self.assertEqual(new_rule_base[0].premise.operator, ds.Operator.AND)  # Check second AND in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.terms[0].operator,
+                         ds.Operator.AND)  # Check first AND in; p <- a and -b and c.
+        self.assertEqual(new_rule_base[0].premise.operator,
+                         ds.Operator.AND)  # Check second AND in; p <- a and -b and c.
 
         # Check p <- a and -b and -c.
         self.assertEqual(new_rule_base[1].conclusion, ds.Literal("p"))  # Check p in; p <- a and -b and -c.
-        self.assertEqual(new_rule_base[1].premise.terms[0].terms[0], ds.Literal("a")) # Check a in; p <- a and -b and -c.
-        self.assertEqual(new_rule_base[1].premise.terms[0].terms[1], ds.Literal("b", True))  # Check b in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[0].terms[0],
+                         ds.Literal("a"))  # Check a in; p <- a and -b and -c.
+        self.assertEqual(new_rule_base[1].premise.terms[0].terms[1],
+                         ds.Literal("b", True))  # Check b in; p <- a and -b and -c.
         self.assertEqual(new_rule_base[1].premise.terms[1], ds.Literal("c", True))  # Check c in; p <- a and -b and -c.
-        self.assertEqual(new_rule_base[1].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; p <- -a and -b
+        self.assertEqual(new_rule_base[1].premise.terms[0].operator,
+                         ds.Operator.AND)  # Check first AND in; p <- -a and -b
         # and -c.
         self.assertEqual(new_rule_base[1].premise.operator, ds.Operator.AND)  # Check second AND in; p <- a
         # and -b and -c.
 
         # Check -p < a and b and c.
         self.assertEqual(new_rule_base[2].conclusion, ds.Literal("p", True))  # Check p in; -p <- a and b and c.
-        self.assertEqual(new_rule_base[2].premise.terms[0].terms[0], ds.Literal("a"))  # Check a in; -p <- a and b and c.
-        self.assertEqual(new_rule_base[2].premise.terms[0].terms[1], ds.Literal("b"))  # Check b in;  -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[0].terms[0],
+                         ds.Literal("a"))  # Check a in; -p <- a and b and c.
+        self.assertEqual(new_rule_base[2].premise.terms[0].terms[1],
+                         ds.Literal("b"))  # Check b in;  -p <- a and b and c.
         self.assertEqual(new_rule_base[2].premise.terms[1], ds.Literal("c"))  # Check c in;  -p <- a and b and c.
 
         self.assertEqual(new_rule_base[2].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in; -p <- a
@@ -526,7 +537,7 @@ class TestDataStruct(unittest.TestCase):
         # and b and c.
         self.assertEqual(new_rule_base[3].premise.terms[0].terms[1], ds.Literal("b"))  # Check b in;  -p <- -a and b
         # and c.
-        self.assertEqual(new_rule_base[3].premise.terms[1], ds.Literal("c")) # Check c in;  -p <- -a and b and c.
+        self.assertEqual(new_rule_base[3].premise.terms[1], ds.Literal("c"))  # Check c in;  -p <- -a and b and c.
 
         self.assertEqual(new_rule_base[3].premise.terms[0].operator, ds.Operator.AND)  # Check first AND in;  -p <-
         # -a and b and c.
@@ -607,6 +618,127 @@ class TestDataStruct(unittest.TestCase):
         self.assertEqual(rule_list[1].premise.terms[1], ds.Literal("c"))
         self.assertEqual(rule_list[1].conclusion, ds.Literal("p", True))
         self.assertEqual(rule_list[1].premise.operator, ds.Operator.AND)
+
+    def test_factors_premise(self):
+        temp = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+        rule = ds.Formula.build_and_formula(temp, ds.Literal("c"))
+
+        factors = cv.factors_premise(rule)
+        self.assertEqual(factors, [ds.Literal("a"), ds.Literal("b", True), ds.Literal("c")])
+
+    def test_get_relevant_factors(self):
+        temp = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+        prem1 = ds.Formula.build_and_formula(temp, ds.Literal("c"))
+        prem2 = ds.Formula.build_or_formula(ds.Literal("c"), ds.Literal("d"))
+        rule1 = ds.Rule(ds.Literal("p"), prem1)
+        rule2 = ds.Rule(ds.Literal("p", True), prem2)
+
+        factors = cv.get_relevant_factors([rule1, rule2], ds.Literal("p"))
+        self.assertEqual(factors, [ds.Literal("a"), ds.Literal("b", True), ds.Literal("c"), ds.Literal("d")])
+
+    def test_relevant_situations(self):
+        factors = [ds.Literal("a"), ds.Literal("b"), ds.Literal("c")]
+        situations = cv.relevant_situations(factors)
+        a = ds.Literal("a")
+        na = ds.Literal("a", True)
+        b = ds.Literal("b")
+        nb = ds.Literal("b", True)
+        c = ds.Literal("c")
+        nc = ds.Literal("c", True)
+
+        self.assertEqual(situations[0].terms[0].terms[0], a)
+        self.assertEqual(situations[0].terms[0].terms[1], nb)
+        self.assertEqual(situations[0].terms[1], nc)
+        self.assertEqual(situations[1].terms[0].terms[0], na)
+        self.assertEqual(situations[1].terms[0].terms[1], nb)
+        self.assertEqual(situations[1].terms[1], nc)
+        self.assertEqual(situations[2].terms[0].terms[0], a)
+        self.assertEqual(situations[2].terms[0].terms[1], b)
+        self.assertEqual(situations[2].terms[1], nc)
+        self.assertEqual(situations[3].terms[0].terms[0], na)
+        self.assertEqual(situations[3].terms[0].terms[1], b)
+        self.assertEqual(situations[3].terms[1], nc)
+        self.assertEqual(situations[4].terms[0].terms[0], a)
+        self.assertEqual(situations[4].terms[0].terms[1], nb)
+        self.assertEqual(situations[4].terms[1], c)
+        self.assertEqual(situations[5].terms[0].terms[0], na)
+        self.assertEqual(situations[5].terms[0].terms[1], nb)
+        self.assertEqual(situations[5].terms[1], c)
+        self.assertEqual(situations[6].terms[0].terms[0], a)
+        self.assertEqual(situations[6].terms[0].terms[1], b)
+        self.assertEqual(situations[6].terms[1], c)
+        self.assertEqual(situations[7].terms[0].terms[0], na)
+        self.assertEqual(situations[7].terms[0].terms[1], b)
+        self.assertEqual(situations[7].terms[1], c)
+
+    def test_premise_to_full_tabular(self):
+        factors = [ds.Literal("a"), ds.Literal("b")]
+        premise = ds.Formula.build_and_formula(ds.Literal("c"), ds.Literal("d"))
+        formula_base = cv.formula_to_full_tabular(premise, factors)
+
+        # a and c and d
+        # -a and c and d
+        # b and c and d
+        # -b and c and d
+
+        self.assertEqual(formula_base[0].terms[0].terms[0], ds.Literal("a"))
+        self.assertEqual(formula_base[0].terms[0].terms[1], ds.Literal("c"))
+        self.assertEqual(formula_base[0].terms[1], ds.Literal("d"))
+        self.assertEqual(formula_base[1].terms[0].terms[0], ds.Literal("a", True))
+        self.assertEqual(formula_base[1].terms[0].terms[1], ds.Literal("c"))
+        self.assertEqual(formula_base[1].terms[1], ds.Literal("d"))
+        self.assertEqual(formula_base[2].terms[0].terms[0], ds.Literal("b"))
+        self.assertEqual(formula_base[2].terms[0].terms[1], ds.Literal("c"))
+        self.assertEqual(formula_base[2].terms[1], ds.Literal("d"))
+        self.assertEqual(formula_base[3].terms[0].terms[0], ds.Literal("b", True))
+        self.assertEqual(formula_base[3].terms[0].terms[1], ds.Literal("c"))
+        self.assertEqual(formula_base[3].terms[1], ds.Literal("d"))
+
+    def test_check_factor_in_formula(self):
+        formula = ds.Formula.build_and_formula(ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b")),
+                                               ds.Literal("c"))
+        b = ds.Literal("b")
+
+        # (a and b) and c -> True
+
+        is_in = cv.check_factor_in_formula(b, formula)
+        self.assertTrue(is_in)
+
+    def test_remove_factor_from_formula(self):
+        formula = ds.Formula.build_and_formula(ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b")),
+                                               ds.Literal("c"))
+        b = ds.Literal("b")
+
+        # (a and b) and c -> a and c
+
+        removed_formula = cv.remove_factor_from_formula(b, formula)
+        self.assertEqual(removed_formula.terms[0], ds.Literal("a"))
+        self.assertEqual(removed_formula.terms[1], ds.Literal("c"))
+
+    def test_equal_formula(self):
+        form1 = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+        form2 = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
+        form3 = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b"))
+        self.assertTrue(form1 == form2)
+        self.assertFalse(form1 == form3)
+
+    def test_length_formula(self):
+        ab = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b"))
+        abc = ds.Formula.build_and_formula(ab, ds.Literal("c"))
+        dabc = ds.Formula.build_and_formula(ds.Literal("b"), abc)
+        self.assertEqual(dp.length_formula(ab), 2)
+        self.assertEqual(dp.length_formula(abc), 3)
+        self.assertEqual(dp.length_formula(dabc), 4)
+
+    # def test_determine_priorities(self):
+    #     rule_list = parser.parse_file("testGrammar")
+    #     order = dp.Order(rule_list)
+        # order.order_rules("top_is_highest")
+        # order.order_rules("long_is_highest")
+        # order.order_rules("short_is_highest")
+        # mn.print_rule_list(order.rule_list)
+
+
 
 if __name__ == '__main__':
     unittest.main()

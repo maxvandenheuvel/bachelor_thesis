@@ -45,6 +45,28 @@ class Formula:
         self.terms = terms
         self.operator = operator
 
+    def __eq__(self, other):
+        if isinstance(other, Literal):
+            equal = self.terms[0] == other
+            if equal:
+                equal = self.terms[1] == other
+        else:
+            if self.left_is_subformula() and other.left_is_subformula():
+                equal = self.terms[0] == other.terms[0]
+            elif self.left_is_subformula() or other.left_is_subformula():
+                equal = False
+            else:
+                equal = self.terms[0] == other.terms[0]
+
+            if equal:
+                if self.right_is_subformula() and other.right_is_subformula():
+                    equal = self.terms[1] == other.terms[1]
+                elif self.right_is_subformula() or other.right_is_subformula():
+                    return False
+                else:
+                    equal = self.terms[1] == other.terms[1]
+        return equal
+
     # Negates the formula operator and returns a new Operator object.
     def negate_operator(self):
         if self.operator == Operator.AND:

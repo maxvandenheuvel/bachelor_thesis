@@ -1,0 +1,7 @@
+p <- a.
+-p <- a and b.
+p <- c.
+k <- a and b or c and d.
+l <- -a or b.
+d <- k and c or -c.
+-p <- b.

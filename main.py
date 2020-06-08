@@ -63,10 +63,16 @@ def print_rule_list(rule_list):
 
 
 if __name__ == '__main__':
-    rule_list = ps.parse_string("p <- a and -b and c."
-                                "-p <- b and c.")
-    # icb = cv.pb_to_icb(rule_list)
-    ftcb = cv.icb_to_ftcb(rule_list)
-    icb = cv.ftcb_to_icb(ftcb)
-    # print_rule_list(icb)
+    rule_list = ps.parse_string("p <- a."
+                                "-p <- b."
+                                "l <- k."
+                                "-l <- o.")
+
+    icb = cv.pb_to_icb(rule_list)
+    # ftcb = cv.icb_to_ftcb(rule_list)
     print_rule_list(icb)
+    # icb = cv.ftcb_to_icb(ftcb)
+    pb = cv.icb_to_pb(icb)
+    # print_rule_list(icb)
+    print_rule_list(pb)
+
