@@ -16,3 +16,11 @@ Run: python3 main.py
 
 to convert the given rule base into constraint-based representation,
 as mention in the paper.
+
+By: Max van den Heuvel,
+
+Bachelor Thesis Artificial Intelligence,
+
+University of Amsterdam,
+
+Date: 26-06-2020
