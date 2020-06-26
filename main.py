@@ -28,6 +28,8 @@ def print_data(formula):
             print_data(formula.terms[0])
         else:
             print(get_literal(formula.terms[0]) + " " + get_operator(formula.operator) + " ", end='')
+        if formula.left_is_subformula() and formula.right_is_subformula():
+            print(" " + get_operator(formula.operator) + " ", end='')
         if formula.right_is_subformula():
             print_data(formula.terms[1])
         elif formula.left_is_subformula():
@@ -63,16 +65,15 @@ def print_rule_list(rule_list):
 
 
 if __name__ == '__main__':
-    rule_list = ps.parse_string("p <- a."
-                                "-p <- b."
-                                "l <- k."
-                                "-l <- o.")
-
+    # rule_list = ps.parse_string("p <- a and -b."
+    #                             "-p <- b and c.")
+    rule_list = ps.parse_file("testGrammar")
     icb = cv.pb_to_icb(rule_list)
     # ftcb = cv.icb_to_ftcb(rule_list)
-    print_rule_list(icb)
-    # icb = cv.ftcb_to_icb(ftcb)
-    pb = cv.icb_to_pb(icb)
     # print_rule_list(icb)
-    print_rule_list(pb)
+    # icb = cv.ftcb_to_icb(ftcb)
+    # pb = cv.icb_to_pb(rule_list)
+    # print_rule_list(icb)
+    # print()
+    print_rule_list(icb)
 

@@ -4,6 +4,7 @@ import data_structs as ds
 import converters as cv
 import qm
 import qm_utils as qmu
+import utils as ut
 import determining_priorities as dp
 import parser
 
@@ -623,7 +624,7 @@ class TestDataStruct(unittest.TestCase):
         temp = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b", True))
         rule = ds.Formula.build_and_formula(temp, ds.Literal("c"))
 
-        factors = cv.factors_premise(rule)
+        factors = ut.factors_premise(rule)
         self.assertEqual(factors, [ds.Literal("a"), ds.Literal("b", True), ds.Literal("c")])
 
     def test_get_relevant_factors(self):
@@ -633,12 +634,12 @@ class TestDataStruct(unittest.TestCase):
         rule1 = ds.Rule(ds.Literal("p"), prem1)
         rule2 = ds.Rule(ds.Literal("p", True), prem2)
 
-        factors = cv.get_relevant_factors([rule1, rule2], ds.Literal("p"))
+        factors = ut.get_relevant_factors([rule1, rule2], ds.Literal("p"))
         self.assertEqual(factors, [ds.Literal("a"), ds.Literal("b", True), ds.Literal("c"), ds.Literal("d")])
 
     def test_relevant_situations(self):
         factors = [ds.Literal("a"), ds.Literal("b"), ds.Literal("c")]
-        situations = cv.relevant_situations(factors)
+        situations = ut.relevant_situations(factors)
         a = ds.Literal("a")
         na = ds.Literal("a", True)
         b = ds.Literal("b")
@@ -674,7 +675,7 @@ class TestDataStruct(unittest.TestCase):
     def test_premise_to_full_tabular(self):
         factors = [ds.Literal("a"), ds.Literal("b")]
         premise = ds.Formula.build_and_formula(ds.Literal("c"), ds.Literal("d"))
-        formula_base = cv.formula_to_full_tabular(premise, factors)
+        formula_base = ut.formula_to_full_tabular(premise, factors)
 
         # a and c and d
         # -a and c and d
@@ -701,7 +702,7 @@ class TestDataStruct(unittest.TestCase):
 
         # (a and b) and c -> True
 
-        is_in = cv.check_factor_in_formula(b, formula)
+        is_in = ut.check_factor_in_formula(b, formula)
         self.assertTrue(is_in)
 
     def test_remove_factor_from_formula(self):
@@ -711,7 +712,7 @@ class TestDataStruct(unittest.TestCase):
 
         # (a and b) and c -> a and c
 
-        removed_formula = cv.remove_factor_from_formula(b, formula)
+        removed_formula = ut.remove_factor_from_formula(b, formula)
         self.assertEqual(removed_formula.terms[0], ds.Literal("a"))
         self.assertEqual(removed_formula.terms[1], ds.Literal("c"))
 
@@ -726,17 +727,47 @@ class TestDataStruct(unittest.TestCase):
         ab = ds.Formula.build_and_formula(ds.Literal("a"), ds.Literal("b"))
         abc = ds.Formula.build_and_formula(ab, ds.Literal("c"))
         dabc = ds.Formula.build_and_formula(ds.Literal("b"), abc)
-        self.assertEqual(dp.length_formula(ab), 2)
-        self.assertEqual(dp.length_formula(abc), 3)
-        self.assertEqual(dp.length_formula(dabc), 4)
+        self.assertEqual(ut.length_formula(ab), 2)
+        self.assertEqual(ut.length_formula(abc), 3)
+        self.assertEqual(ut.length_formula(dabc), 4)
 
-    # def test_determine_priorities(self):
-    #     rule_list = parser.parse_file("testGrammar")
-    #     order = dp.Order(rule_list)
+    def test_determine_priorities(self):
+        rule_list = parser.parse_file("testGrammar")
+        order = dp.Order(rule_list)
+        order.order_rules([2,1,0])
         # order.order_rules("top_is_highest")
         # order.order_rules("long_is_highest")
         # order.order_rules("short_is_highest")
-        # mn.print_rule_list(order.rule_list)
+        mn.print_rule_list(order.rule_list)
+
+    def test_adding_weights(self):
+        a = ds.Literal("a")
+        b = ds.Literal("b")
+        c = ds.Literal("c")
+        d = ds.Literal("d")
+        ab = ds.Formula.build_and_formula(a, b)
+        cd = ds.Formula.build_and_formula(c, d)
+        abc = ds.Formula.build_and_formula(ab, c)
+        abcd = ds.Formula.build_and_formula(ab, cd)
+        ab_or_cd = ds.Formula.build_or_formula(ab, cd)
+        abc_or_d = ds.Formula.build_or_formula(abc, d)
+
+        node = dp.Node(ds.Literal("p"))
+
+#       (a and b) and (c and d) -> (1/4, a), (1/4, b), (1/4, c), (1/4, d)
+        node.determine_weight(abcd)
+        self.assertEqual(node.edges, [(1/4, a), (1/4, b), (1/4, c), (1/4, d)])
+        node.clear_edges()
+
+#       (a and b) or (c and d) -> (1/2, a), (1/2, b), (1/2, c), (1/2, d)
+        node.determine_weight(ab_or_cd)
+        self.assertEqual(node.edges, [(1/2, a), (1/2, b), (1/2, c), (1/2, d)])
+        node.clear_edges()
+
+#       ((a and b) and c) or d -> (1/3, a), (1/3, b), (1/3, c), (1, d)
+        node.determine_weight(abc_or_d)
+        print("edges", node.edges)
+        self.assertEqual(node.edges, [(1/3, a), (1/3, b), (1/3, c), (1, d)])
 
 
 
